@@ -1,0 +1,13 @@
+# 本機/個人設定(不進版控)
+.claude/settings.local.json
+
+# Office 暫存鎖檔
+~$*
+
+# 作業系統雜項
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# clasp 憑證(實際憑證在家目錄;避免誤放進 repo)
+.clasprc.json

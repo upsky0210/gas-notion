@@ -1,0 +1,2692 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    --bg:#ffffff; --panel:#f7f6f3; --border:#e8e7e4; --border2:#e0dfdb;
+    --text:#37352f; --muted:#a09f9b; --muted2:#7a7974;
+    --hover:#ececea; --active:#e3e2de; --card:#fbfbfa; --btnbg:#ffffff;
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: "Noto Sans TC", -apple-system, "Segoe UI", "Microsoft JhengHei", sans-serif;
+  }
+  .row, .btn, .sres, .drive-item, .plinkItem, #sidebarFoot button, .tog { transition: background .12s ease; }
+  a[href^="#page="] { color: var(--text); background: var(--hover); border-radius: 3px; padding: 0 3px; text-decoration: none; border-bottom: 1px dashed var(--muted); cursor: pointer; }
+  #plinkPicker { position: fixed; z-index: 40; background: var(--card); border: 1px solid var(--border2); border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,.12); padding: 6px; width: 260px; }
+  #plinkPicker input { width: 100%; padding: 6px 8px; border: 1px solid var(--border2); border-radius: 4px; font: inherit; font-size: 13px; background: var(--btnbg); color: var(--text); outline: none; margin-bottom: 4px; }
+  .plinkItem { padding: 5px 8px; border-radius: 4px; cursor: pointer; font-size: 14px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .plinkItem:hover, .plinkItem.sel { background: var(--hover); }
+  html.side-hide #sidebar { display: none; }
+  body.theme-sepia { --bg:#f7f1e5; --panel:#efe7d7; --border:#e0d6c2; --border2:#d8cdb6; --text:#41382c; --muted:#9a8f7c; --muted2:#7c7160; --hover:#e7ddc9; --active:#dfd3bb; --card:#f2ead9; --btnbg:#f7f1e5; }
+  body.theme-green { --bg:#f2f7f2; --panel:#e7efe7; --border:#d5e2d5; --border2:#c9d9c9; --text:#2f3a2f; --muted:#8fa08f; --muted2:#6f826f; --hover:#dde9dd; --active:#d2e2d2; --card:#ecf3ec; --btnbg:#f2f7f2; }
+  body.theme-blue { --bg:#f0f5fa; --panel:#e4edf6; --border:#d3e0ee; --border2:#c4d6e8; --text:#2c3440; --muted:#8fa1b5; --muted2:#6e8296; --hover:#dce8f3; --active:#d0e0ef; --card:#eaf1f8; --btnbg:#f0f5fa; }
+  body.theme-pink { --bg:#faf2f4; --panel:#f5e8ec; --border:#ecd8de; --border2:#e3cad2; --text:#40323a; --muted:#b295a0; --muted2:#96707e; --hover:#f0dfe5; --active:#ecd5dd; --card:#f7edf0; --btnbg:#faf2f4; }
+  body.theme-dark { --bg:#1e1e1c; --panel:#262624; --border:#3a3a37; --border2:#44443f; --text:#e4e2dc; --muted:#8a8983; --muted2:#a5a49d; --hover:#33332f; --active:#3d3d38; --card:#2b2b28; --btnbg:#2b2b28; }
+  #app { display: flex; height: 100vh; }
+  #sidebar { width: 260px; flex: none; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+  #sidebarHead { padding: 14px 12px 8px 16px; font-weight: 700; font-size: 14px; color: var(--muted2); display: flex; justify-content: space-between; align-items: center; }
+  #themeSel { border: 1px solid var(--border2); background: var(--btnbg); color: var(--muted2); border-radius: 4px; font-size: 12px; padding: 2px 4px; outline: none; }
+  #searchWrap { padding: 0 8px 6px; }
+  #searchInput { width: 100%; padding: 6px 8px; border: 1px solid var(--border2); border-radius: 4px; font: inherit; font-size: 13px; background: var(--btnbg); color: var(--text); outline: none; }
+  #tree { flex: 1; overflow-y: auto; padding: 0 8px 8px; }
+  #tree ul { list-style: none; margin: 0; padding-left: 14px; }
+  #tree > ul { padding-left: 0; }
+  .row { display: flex; align-items: center; gap: 2px; padding: 3px 4px; border-radius: 4px; cursor: pointer; font-size: 14px; }
+  .row:hover { background: var(--hover); }
+  .row.active { background: var(--active); font-weight: 600; }
+  .row.pending { opacity: .55; }
+  .row.drop-into { background: #dbe9f8; }
+  .row.drop-before { box-shadow: inset 0 2px 0 #4a90d9; }
+  .row.drop-after { box-shadow: inset 0 -2px 0 #4a90d9; }
+  .tog { width: 18px; flex: none; text-align: center; color: var(--muted); font-size: 11px; border-radius: 3px; }
+  .tog.has:hover { background: var(--active); color: var(--muted2); }
+  .label { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .row button { visibility: hidden; border: none; background: none; color: var(--muted); cursor: pointer; font-size: 14px; width: 20px; height: 20px; line-height: 20px; padding: 0; border-radius: 3px; }
+  .row:hover button { visibility: visible; }
+  .row button:hover { background: var(--active); color: var(--text); }
+  #addRoot { margin: 8px; padding: 8px; border: none; border-radius: 4px; background: none; color: var(--muted2); font-size: 14px; text-align: left; cursor: pointer; }
+  #addRoot:hover { background: var(--hover); }
+  .hint { padding: 8px; color: var(--muted); font-size: 13px; }
+  .backBtn { margin: 4px 0; border: none; background: none; color: var(--muted2); cursor: pointer; font-size: 13px; padding: 4px 6px; border-radius: 4px; }
+  .backBtn:hover { background: var(--hover); }
+  .sres { padding: 6px 8px; border-radius: 4px; cursor: pointer; }
+  .sres:hover { background: var(--hover); }
+  .srt { font-size: 14px; }
+  .srs { font-size: 12px; color: var(--muted2); overflow: hidden; max-height: 32px; }
+  #main { flex: 1; overflow-y: auto; background: var(--bg); }
+  #topbar { position: sticky; top: 0; z-index: 10; background: var(--bg); display: flex; justify-content: space-between; align-items: center; padding: 8px 20px; min-height: 40px; }
+  #actions { display: flex; gap: 6px; }
+  .btn { border: 1px solid var(--border2); background: var(--btnbg); border-radius: 4px; padding: 3px 10px; font-size: 12px; color: var(--muted2); cursor: pointer; }
+  .btn:hover { background: var(--hover); }
+  #status { font-size: 12px; color: var(--muted); }
+  #status.err { color: #d33; }
+  .panelWrap { max-width: 680px; margin: 0 auto; padding: 4px 24px; }
+  .vcard { border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; background: var(--card); font-size: 13px; }
+  .vhead { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; color: var(--muted2); }
+  .vhead button { border: none; background: none; cursor: pointer; color: var(--muted); font-size: 14px; }
+  .vrow { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 4px 0; }
+  .vlabel { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .vtime { color: var(--muted); font-size: 12px; }
+  .aiRow { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0; }
+  .aiInput { flex: 1; min-width: 160px; padding: 6px 8px; border: 1px solid var(--border2); border-radius: 4px; font: inherit; font-size: 13px; background: var(--btnbg); color: var(--text); outline: none; }
+  .aiResult { white-space: pre-wrap; border-top: 1px solid var(--border); margin-top: 8px; padding-top: 8px; font-size: 14px; line-height: 1.7; max-height: 40vh; overflow-y: auto; }
+  .aiNote { color: var(--muted); font-size: 12px; margin-top: 6px; }
+  #page { max-width: 680px; margin: 0 auto; padding: 8px 24px 30vh; }
+  body.w-wide #page, body.w-wide .panelWrap { max-width: 960px; }
+  body.w-full #page, body.w-full .panelWrap { max-width: none; padding-left: 48px; padding-right: 48px; }
+  .tblwrap .tc-wrap { overflow-x: auto; }
+  .tblwrap .tc-cell { min-width: 80px; }
+  #titleInput { width: 100%; border: none; outline: none; font: inherit; font-size: 34px; font-weight: 700; padding: 4px 0 12px; background: none; color: var(--text); }
+  #titleInput::placeholder { color: var(--muted); opacity: .5; }
+  #empty { display: flex; align-items: center; justify-content: center; height: 60vh; color: var(--muted); font-size: 15px; }
+  .hidden { display: none !important; }
+  .ce-block__content, .ce-toolbar__content { max-width: 100%; }
+  .drive-card { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--border2); border-radius: 6px; padding: 8px 12px; text-decoration: none; color: var(--text); font-size: 14px; background: var(--card); margin: 4px 0; }
+  .drive-card:hover { background: var(--hover); }
+  .drive-picker { border: 1px solid var(--border2); border-radius: 6px; padding: 10px; background: var(--card); }
+  .drive-picker input { width: 100%; padding: 7px 8px; border: 1px solid var(--border2); border-radius: 4px; font: inherit; font-size: 13px; background: var(--btnbg); color: var(--text); outline: none; }
+  .drive-crumb { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; font-size: 12px; color: var(--muted2); margin: 8px 0 4px; }
+  .drive-crumb span { cursor: pointer; padding: 2px 4px; border-radius: 3px; }
+  .drive-crumb span:hover { background: var(--hover); }
+  .drive-crumb b { color: var(--muted); font-weight: 400; }
+  .drive-results { margin-top: 4px; font-size: 13px; color: var(--muted2); max-height: 260px; overflow-y: auto; }
+  .drive-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 4px; cursor: pointer; font-size: 14px; color: var(--text); }
+  .drive-item:hover { background: var(--hover); }
+  .drive-item .fold { color: var(--muted2); }
+  .ytwrap { position: relative; padding-top: 56.25%; }
+  .ytwrap iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; border-radius: 6px; }
+  #tplBar { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin: 4px 0 12px; }
+  #sidebarFoot { display: flex; flex-wrap: wrap; padding: 4px; border-top: 1px solid var(--border); }
+  #sidebarFoot button { border: none; border-radius: 4px; background: none; color: var(--muted2); font-size: 13px; cursor: pointer; padding: 6px 8px; }
+  #sidebarFoot button:hover { background: var(--hover); }
+  #sidebarFoot .grow { flex: 1; text-align: left; font-size: 14px; }
+  #sidebarFoot .brk { flex-basis: 100%; height: 0; }
+  .row.folder .label { font-weight: 600; }
+  #topLeft { display: flex; gap: 6px; align-items: center; }
+  #topbar { border-bottom: 1px solid var(--border); }
+  .vcard { border-radius: 8px; }
+  @media (max-width: 768px) {
+    #sidebar { position: fixed; z-index: 30; top: 0; bottom: 0; left: 0; transform: translateX(-105%); transition: transform .2s; box-shadow: 2px 0 12px rgba(0,0,0,.2); }
+    html.nav-open #sidebar { transform: translateX(0); }
+    #navMask { display: none; position: fixed; inset: 0; z-index: 25; background: rgba(0,0,0,.3); }
+    html.nav-open #navMask { display: block; }
+    #page { padding: 8px 14px 30vh; }
+    #titleInput { font-size: 26px; }
+    .row button { visibility: visible; }
+    #topbar { padding: 8px 10px; flex-wrap: wrap; gap: 4px; }
+    .panelWrap { padding: 4px 10px; }
+  }
+  .intgGroup { border-top: 1px solid var(--border); margin-top: 8px; padding-top: 8px; }
+  .intgTitle { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .todoGroup { margin: 14px 0; }
+  .todoGroup h3 { margin: 0 0 6px; font-size: 15px; }
+  .todoGroup h3 a { color: var(--text); text-decoration: none; border-bottom: 1px dashed var(--muted); cursor: pointer; }
+  .todoGroup h3 a:hover { color: var(--muted2); }
+  .todoItem { display: flex; gap: 8px; padding: 4px 0 4px 6px; font-size: 15px; color: var(--text); align-items: baseline; }
+  .todoItem::before { content: '☐'; color: var(--muted); }
+  .todoHead { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .todoHead h2 { margin: 0; }
+  .tblwrap .tc-table, .tblwrap .tc-cell { border-color: var(--border2); }
+  .tblst-strong .tc-table { border-width: 2px !important; border-color: #8a8983 !important; }
+  .tblst-strong .tc-cell { border-width: 2px !important; border-color: #8a8983 !important; }
+  .tblst-gray .tc-table--heading .tc-row:first-child { background: #eceae3; font-weight: 600; }
+  .tblst-blue .tc-table--heading .tc-row:first-child { background: #dcebfa; font-weight: 600; }
+  .tblst-blue .tc-table, .tblst-blue .tc-cell { border-color: #b5d4f4 !important; }
+  .tblst-green .tc-table--heading .tc-row:first-child { background: #e2efcd; font-weight: 600; }
+  .tblst-green .tc-table, .tblst-green .tc-cell { border-color: #c0dd97 !important; }
+  .tblst-amber .tc-table--heading .tc-row:first-child { background: #fbe8c4; font-weight: 600; }
+  .tblst-amber .tc-table, .tblst-amber .tc-cell { border-color: #fac775 !important; }
+  .tbl-compact .tc-cell { padding: 4px 8px; }
+  body.theme-dark .tblst-gray .tc-table--heading .tc-row:first-child { background: #3a3a36; }
+  body.theme-dark .tblst-blue .tc-table--heading .tc-row:first-child { background: #243a50; }
+  body.theme-dark .tblst-blue .tc-table, body.theme-dark .tblst-blue .tc-cell { border-color: #3d5a78 !important; }
+  body.theme-dark .tblst-green .tc-table--heading .tc-row:first-child { background: #2e4426; }
+  body.theme-dark .tblst-green .tc-table, body.theme-dark .tblst-green .tc-cell { border-color: #4a6440 !important; }
+  body.theme-dark .tblst-amber .tc-table--heading .tc-row:first-child { background: #4a3a1c; }
+  body.theme-dark .tblst-amber .tc-table, body.theme-dark .tblst-amber .tc-cell { border-color: #6e5730 !important; }
+  body.theme-dark .ce-popover__container { background: var(--card); border-color: var(--border2); }
+  body.theme-dark .ce-popover-item, body.theme-dark .ce-popover-item__title, body.theme-dark .ce-popover-header__text { color: var(--text); }
+  body.theme-dark .ce-popover-item__icon, body.theme-dark .ce-popover-item-html { background: var(--hover); color: var(--text); box-shadow: none; }
+  body.theme-dark .ce-popover-item:hover:not(.ce-popover-item--no-hover) { background: var(--hover); }
+  body.theme-dark .cdx-search-field { background: var(--hover); border-color: var(--border2); }
+  body.theme-dark .cdx-search-field__input { color: var(--text); }
+  body.theme-dark .ce-toolbar__plus, body.theme-dark .ce-toolbar__settings-btn { color: var(--text); }
+  body.theme-dark .ce-toolbar__plus:hover, body.theme-dark .ce-toolbar__settings-btn:hover { background: var(--hover); }
+  body.theme-dark .ce-inline-toolbar { background: var(--card); border-color: var(--border2); color: var(--text); }
+  body.theme-dark .ce-inline-tool { color: var(--text); }
+  body.theme-dark .ce-inline-tool:hover { background: var(--hover); }
+  body.theme-dark .ce-block--selected .ce-block__content { background: var(--hover); }
+  body.theme-dark .ce-code__textarea, body.theme-dark .cdx-input { background: var(--card); color: var(--text); border-color: var(--border2); box-shadow: none; }
+  body.theme-dark .cdx-checklist__item-checkbox-check { background: var(--card); border-color: var(--border2); }
+  body.theme-dark .tc-add-column, body.theme-dark .tc-add-row { background: var(--bg); }
+  body.theme-dark .tc-add-column:hover, body.theme-dark .tc-add-row:hover, body.theme-dark .tc-add-row:hover:before { background: var(--hover); }
+  body.theme-dark .tc-popover { background: var(--card); border-color: var(--border2); color: var(--text); }
+  body.theme-dark .tc-popover__item-icon { background: var(--hover); border: none; }
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="sidebar">
+    <div id="sidebarHead">
+      <span>我的筆記</span>
+      <select id="themeSel" title="佈景主題">
+        <option value="">明亮</option>
+        <option value="theme-sepia">米色</option>
+        <option value="theme-green">淡綠</option>
+        <option value="theme-blue">淡藍</option>
+        <option value="theme-pink">粉色</option>
+        <option value="theme-dark">深色</option>
+      </select>
+    </div>
+    <div id="searchWrap"><input id="searchInput" placeholder="搜尋筆記,按 Enter…" autocomplete="off"></div>
+    <div id="tree"></div>
+    <div id="sidebarFoot">
+      <button class="grow" onclick="addPage('')">＋ 新頁面</button>
+      <button onclick="addFolder()" title="建立資料夾整理頁面">＋ 資料夾</button>
+      <span class="brk"></span>
+      <button onclick="document.getElementById('mdFile').click()" title="匯入 .md 檔或 Notion 匯出的 .zip">⇪ 匯入</button>
+      <button onclick="showTodos()" title="彙整所有頁面未完成的待辦">☑ 待辦彙整</button>
+      <button onclick="backupAll()" title="下載全部頁面的備份 zip">⇩ 備份</button>
+      <button onclick="showTrash()" title="刪除的頁面保留 30 天">回收桶</button>
+      <input type="file" id="mdFile" accept=".md,.markdown,.txt,.zip" class="hidden">
+    </div>
+  </aside>
+  <div id="navMask" onclick="document.documentElement.classList.remove('nav-open')"></div>
+  <div id="plinkPicker" class="hidden"><input placeholder="搜尋要連結的頁面…"><div id="plinkList"></div></div>
+  <main id="main">
+    <div id="topbar">
+      <div id="topLeft">
+      <button id="menuBtn" class="btn" onclick="toggleNav()" title="開關側欄" aria-label="開關側欄">☰</button>
+      <div id="actions" class="hidden">
+        <button class="btn" onclick="exportMd()">匯出 MD</button>
+        <button class="btn" id="composeBtn" title="選取數個段落後按此,拆成新子頁,原地留下連結">拆分</button>
+        <button class="btn" onclick="showVersions()">版本</button>
+        <button class="btn" onclick="toggleAi()">AI</button>
+        <button class="btn" onclick="toggleIntg()">整合</button>
+        <button class="btn" onclick="toggleShare()">分享</button>
+        <button class="btn" onclick="saveAsTemplate()" title="把目前這頁存成範本">存範本</button>
+        <select id="widthSel" class="btn" title="頁面寬度">
+          <option value="">窄版</option>
+          <option value="w-wide">寬版</option>
+          <option value="w-full">全寬</option>
+        </select>
+      </div>
+      </div>
+      <span id="status">載入中…</span>
+    </div>
+    <div id="versionPanel" class="panelWrap hidden"></div>
+    <div id="aiPanel" class="panelWrap hidden"></div>
+    <div id="intgPanel" class="panelWrap hidden"></div>
+    <div id="sharePanel" class="panelWrap hidden"></div>
+    <div id="todoView" class="panelWrap hidden"></div>
+    <div id="page">
+      <input id="titleInput" placeholder="未命名" autocomplete="off">
+      <div id="tplBar" class="hidden"></div>
+      <div id="editor"></div>
+      <div id="empty" class="hidden">從左側選一個頁面,或按「＋ 新頁面」開始</div>
+    </div>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@editorjs/editorjs@2/dist/editorjs.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@editorjs/header@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@editorjs/list@1"></script>
+<script src="https://cdn.jsdelivr.net/npm/@editorjs/checklist@1"></script>
+<script src="https://cdn.jsdelivr.net/npm/@editorjs/quote@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@editorjs/code@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@editorjs/delimiter@1"></script>
+<script src="https://cdn.jsdelivr.net/npm/@editorjs/table@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@editorjs/image@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+  const run = (fn, ...args) => new Promise((resolve, reject) => {
+    google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[fn](...args);
+  });
+
+  const pages = new Map();
+  let currentId = null;
+  let editor = null;
+  let dirty = false;
+  let saveTimer = null;
+  let loadSeq = 0;
+  let dragId = null;
+  let hasGeminiKey = false;
+  let geminiModel = 'gemini-2.5-flash';
+  let customTemplates = [];
+  const expanded = new Set(JSON.parse(localStorage.getItem('gnExpanded') || '[]'));
+
+  const $ = (id) => document.getElementById(id);
+  const isTmp = (id) => String(id || '').startsWith('tmp_');
+
+  // ---- 佈景主題與頁面寬度 ----
+  function applyBodyClasses() {
+    document.body.className = ($('themeSel').value + ' ' + $('widthSel').value).trim();
+  }
+  $('themeSel').value = localStorage.getItem('gnTheme') || '';
+  $('widthSel').value = localStorage.getItem('gnWidth') || '';
+  applyBodyClasses();
+  $('themeSel').addEventListener('change', () => {
+    localStorage.setItem('gnTheme', $('themeSel').value);
+    applyBodyClasses();
+  });
+  $('widthSel').addEventListener('change', () => {
+    localStorage.setItem('gnWidth', $('widthSel').value);
+    applyBodyClasses();
+  });
+
+  function setStatus(text, cls) {
+    const el = $('status');
+    el.textContent = text;
+    el.className = cls === 'err' ? 'err' : '';
+  }
+
+  function escapeHtml(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function childrenOf(pid) {
+    return Array.from(pages.values())
+      .filter((p) => p.parentId === pid)
+      .sort((a, b) => a.order - b.order || a.title.localeCompare(b.title));
+  }
+
+  function persistExpanded() {
+    localStorage.setItem('gnExpanded', JSON.stringify(Array.from(expanded)));
+  }
+
+  function renderTree() {
+    const root = $('tree');
+    root.innerHTML = '';
+    root.appendChild(renderLevel(''));
+  }
+
+  function renderLevel(pid) {
+    const ul = document.createElement('ul');
+    for (const p of childrenOf(pid)) {
+      const li = document.createElement('li');
+      const isFolder = p.kind === 'folder';
+      const row = document.createElement('div');
+      row.className = 'row' + (p.id === currentId ? ' active' : '') + (p.pending ? ' pending' : '') + (isFolder ? ' folder' : '');
+      if (!p.pending) {
+        row.onclick = isFolder ? () => toggleFolder(p.id) : () => openPage(p.id);
+        row.draggable = true;
+        row.addEventListener('dragstart', (e) => {
+          dragId = p.id;
+          e.dataTransfer.effectAllowed = 'move';
+        });
+        row.addEventListener('dragend', () => { dragId = null; clearDropMarks(); });
+        row.addEventListener('dragover', (e) => {
+          if (!dragId || dragId === p.id) return;
+          e.preventDefault();
+          clearDropMarks();
+          row.classList.add('drop-' + dropZone(e, row));
+        });
+        row.addEventListener('dragleave', () => {
+          row.classList.remove('drop-into', 'drop-before', 'drop-after');
+        });
+        row.addEventListener('drop', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const zone = dropZone(e, row);
+          clearDropMarks();
+          handleDrop(p.id, zone);
+        });
+      }
+
+      const kids = childrenOf(p.id);
+      const tog = document.createElement('span');
+      tog.className = 'tog' + (kids.length ? ' has' : '');
+      tog.textContent = kids.length ? (expanded.has(p.id) ? '▾' : '▸') : '·';
+      if (kids.length) {
+        tog.onclick = (e) => {
+          e.stopPropagation();
+          expanded.has(p.id) ? expanded.delete(p.id) : expanded.add(p.id);
+          persistExpanded();
+          renderTree();
+        };
+      }
+
+      const label = document.createElement('span');
+      label.className = 'label';
+      label.textContent = (isFolder ? '📁 ' : '') + (p.title || (isFolder ? '新資料夾' : '未命名'));
+
+      const add = document.createElement('button');
+      add.textContent = '＋';
+      add.title = isFolder ? '在資料夾內新增頁面' : '新增子頁面';
+      add.onclick = (e) => { e.stopPropagation(); addPage(p.id); };
+
+      const del = document.createElement('button');
+      del.textContent = '✕';
+      del.title = '刪除';
+      del.onclick = (e) => { e.stopPropagation(); deletePage(p.id); };
+
+      if (isFolder) {
+        const ren = document.createElement('button');
+        ren.textContent = '✎';
+        ren.title = '重新命名資料夾';
+        ren.onclick = async (e) => {
+          e.stopPropagation();
+          const name = prompt('資料夾名稱:', p.title || '');
+          if (name === null) return;
+          const t = name.trim() || '新資料夾';
+          p.title = t;
+          renderTree();
+          try { await run('api_renamePage', p.id, t); } catch (err) { setStatus('改名失敗:' + (err.message || err), 'err'); }
+        };
+        row.append(tog, label, add, ren, del);
+      } else {
+        row.append(tog, label, add, del);
+      }
+      li.appendChild(row);
+      if (kids.length && expanded.has(p.id)) li.appendChild(renderLevel(p.id));
+      ul.appendChild(li);
+    }
+    return ul;
+  }
+
+  function dropZone(e, row) {
+    const r = row.getBoundingClientRect();
+    const y = e.clientY - r.top;
+    if (y < r.height * 0.25) return 'before';
+    if (y > r.height * 0.75) return 'after';
+    return 'into';
+  }
+
+  function clearDropMarks() {
+    document.querySelectorAll('.drop-into, .drop-before, .drop-after')
+      .forEach((el) => el.classList.remove('drop-into', 'drop-before', 'drop-after'));
+  }
+
+  function handleDrop(targetId, zone) {
+    const srcId = dragId;
+    if (!srcId || srcId === targetId || isTmp(srcId)) return;
+    if (collectDescendants(srcId).has(targetId)) { setStatus('不能移到自己的子頁面底下', 'err'); return; }
+    const tgt = pages.get(targetId);
+    let parentId, index;
+    if (zone === 'into') {
+      parentId = targetId;
+      index = childrenOf(targetId).filter((p) => p.id !== srcId).length;
+      expanded.add(targetId);
+      persistExpanded();
+    } else {
+      parentId = tgt.parentId;
+      const sib = childrenOf(parentId).filter((p) => p.id !== srcId);
+      const i = sib.findIndex((p) => p.id === targetId);
+      index = zone === 'before' ? i : i + 1;
+    }
+    applyMove(srcId, parentId, index);
+  }
+
+  function applyMove(srcId, parentId, index) {
+    const src = pages.get(srcId);
+    src.parentId = parentId;
+    const seq = childrenOf(parentId).filter((p) => p.id !== srcId);
+    seq.splice(index, 0, src);
+    seq.forEach((p, i) => { p.order = i; });
+    renderTree();
+    setStatus('移動中…');
+    run('api_movePage', srcId, parentId, index)
+      .then(() => setStatus('已移動'))
+      .catch(async (e) => {
+        setStatus('移動失敗:' + (e.message || e), 'err');
+        await reloadIndex();
+      });
+  }
+
+  async function reloadIndex() {
+    const res = await run('api_init');
+    pages.clear();
+    res.pages.forEach((p) => pages.set(p.id, p));
+    renderTree();
+  }
+
+  const treeEl = document.getElementById('tree');
+  treeEl.addEventListener('dragover', (e) => { if (dragId) e.preventDefault(); });
+  treeEl.addEventListener('drop', (e) => {
+    if (!dragId || isTmp(dragId)) return;
+    e.preventDefault();
+    clearDropMarks();
+    applyMove(dragId, '', childrenOf('').filter((p) => p.id !== dragId).length);
+  });
+
+  // ---- 自訂區塊:YouTube 影片(貼網址內嵌,不需 API) ----
+  class YouTubeTool {
+    static get toolbox() {
+      return {
+        title: 'YouTube 影片',
+        icon: '<svg width="17" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="4"/><path d="M10 9.5l5 2.5-5 2.5z"/></svg>'
+      };
+    }
+    constructor({ data }) {
+      this.data = data || {};
+      this.wrap = null;
+    }
+    static extractId(url) {
+      const m = String(url || '').match(/(?:youtu\.be\/|v=|shorts\/|embed\/|live\/)([A-Za-z0-9_-]{6,20})/);
+      return m ? m[1] : '';
+    }
+    render() {
+      this.wrap = document.createElement('div');
+      if (this.data.videoId) this.renderVideo();
+      else this.renderInput();
+      return this.wrap;
+    }
+    renderVideo() {
+      this.wrap.innerHTML = '';
+      const box = document.createElement('div');
+      box.className = 'ytwrap';
+      const f = document.createElement('iframe');
+      f.src = 'https://www.youtube.com/embed/' + this.data.videoId;
+      f.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+      f.allowFullscreen = true;
+      box.appendChild(f);
+      this.wrap.appendChild(box);
+    }
+    renderInput() {
+      this.wrap.innerHTML = '';
+      const box = document.createElement('div');
+      box.className = 'drive-search';
+      const input = document.createElement('input');
+      input.placeholder = '貼上 YouTube 網址,按 Enter…';
+      input.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        e.stopPropagation();
+        const id = YouTubeTool.extractId(input.value);
+        if (!id) { input.value = ''; input.placeholder = '看不懂這個網址,再貼一次…'; return; }
+        this.data = { url: input.value.trim(), videoId: id };
+        this.renderVideo();
+        markDirty();
+      });
+      box.appendChild(input);
+      this.wrap.appendChild(box);
+      setTimeout(() => input.focus(), 50);
+    }
+    save() { return this.data; }
+    validate(d) { return !!(d && d.videoId); }
+  }
+
+  // ---- 自訂區塊:瀏覽/搜尋自己的雲端硬碟並插入檔案 ----
+  class DriveFileTool {
+    static get toolbox() {
+      return {
+        title: 'Drive 檔案',
+        icon: '<svg width="17" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l8.5 14.5h-17z"/><path d="M8 12l4 7"/></svg>'
+      };
+    }
+    constructor({ data }) {
+      this.data = data || {};
+      this.wrap = null;
+      this.stack = [{ id: '', name: '我的雲端硬碟' }];
+    }
+    render() {
+      this.wrap = document.createElement('div');
+      if (this.data.fileId) this.renderCard();
+      else this.renderPicker();
+      return this.wrap;
+    }
+    renderCard() {
+      this.wrap.innerHTML = '';
+      const a = document.createElement('a');
+      a.className = 'drive-card';
+      a.href = this.data.url;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      const img = document.createElement('img');
+      img.src = 'https://drive-thirdparty.googleusercontent.com/32/type/' + (this.data.mimeType || '');
+      img.width = 20; img.height = 20;
+      img.onerror = () => img.remove();
+      const span = document.createElement('span');
+      span.textContent = this.data.name || 'Drive 檔案';
+      a.append(img, span);
+      this.wrap.appendChild(a);
+    }
+    pick(f) {
+      this.data = { fileId: f.id, name: f.name, mimeType: f.mimeType, url: f.url };
+      this.renderCard();
+      markDirty();
+    }
+    fileItem(f, isFolder) {
+      const item = document.createElement('div');
+      item.className = 'drive-item';
+      if (isFolder) {
+        const fold = document.createElement('span');
+        fold.className = 'fold';
+        fold.textContent = '▸';
+        item.appendChild(fold);
+      } else {
+        const img = document.createElement('img');
+        img.src = 'https://drive-thirdparty.googleusercontent.com/32/type/' + (f.mimeType || '');
+        img.width = 18; img.height = 18;
+        img.onerror = () => img.remove();
+        item.appendChild(img);
+      }
+      const span = document.createElement('span');
+      span.textContent = f.name;
+      item.appendChild(span);
+      item.onclick = () => {
+        if (isFolder) {
+          this.stack.push({ id: f.id, name: f.name });
+          this.renderPicker();
+        } else {
+          this.pick(f);
+        }
+      };
+      return item;
+    }
+    renderPicker() {
+      this.wrap.innerHTML = '';
+      const box = document.createElement('div');
+      box.className = 'drive-picker';
+      const input = document.createElement('input');
+      input.placeholder = '搜尋整個雲端硬碟的檔名,按 Enter(或直接在下面瀏覽)…';
+      const crumb = document.createElement('div');
+      crumb.className = 'drive-crumb';
+      this.stack.forEach((node, i) => {
+        if (i > 0) {
+          const sep = document.createElement('b');
+          sep.textContent = '›';
+          crumb.appendChild(sep);
+        }
+        const s = document.createElement('span');
+        s.textContent = node.name;
+        s.onclick = () => {
+          this.stack = this.stack.slice(0, i + 1);
+          this.renderPicker();
+        };
+        crumb.appendChild(s);
+      });
+      const list = document.createElement('div');
+      list.className = 'drive-results';
+      list.textContent = '載入中…';
+      box.append(input, crumb, list);
+      this.wrap.appendChild(box);
+
+      input.addEventListener('keydown', async (e) => {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        e.stopPropagation();
+        const q = input.value.trim();
+        if (!q) return;
+        list.textContent = '搜尋中…';
+        try {
+          const res = await run('api_searchDrive', q);
+          list.innerHTML = '';
+          if (!res.files.length) { list.textContent = '找不到檔案'; return; }
+          for (const f of res.files) list.appendChild(this.fileItem(f, false));
+        } catch (err) {
+          list.textContent = '搜尋失敗:' + (err.message || err);
+        }
+      });
+
+      const cur = this.stack[this.stack.length - 1];
+      run('api_browseDrive', cur.id)
+        .then((res) => {
+          list.innerHTML = '';
+          if (this.stack.length === 1) {
+            list.appendChild(this.fileItem({ id: 'shared', name: '與我共用' }, true));
+          }
+          for (const f of res.folders) list.appendChild(this.fileItem(f, true));
+          for (const f of res.files) list.appendChild(this.fileItem(f, false));
+          if (!res.folders.length && !res.files.length && this.stack.length > 1) {
+            list.textContent = '這個資料夾是空的';
+          }
+        })
+        .catch((err) => { list.textContent = '載入失敗:' + (err.message || err); });
+    }
+    save() { return this.data; }
+    validate(d) { return !!(d && d.fileId); }
+  }
+
+  // ---- 表格樣式(區塊調整選單) ----
+  class TableStyleTune {
+    static get isTune() { return true; }
+    constructor({ data }) {
+      this.data = Object.assign({ style: 'plain', compact: false }, data || {});
+      this.wrapper = null;
+    }
+    wrap(content) {
+      this.wrapper = document.createElement('div');
+      this.wrapper.appendChild(content);
+      this.apply();
+      return this.wrapper;
+    }
+    apply() {
+      if (!this.wrapper) return;
+      this.wrapper.className = 'tblwrap tblst-' + this.data.style + (this.data.compact ? ' tbl-compact' : '');
+    }
+    swatch(color) {
+      return '<svg width="14" height="14" viewBox="0 0 14 14"><rect x="1" y="1" width="12" height="12" rx="3" fill="' + color + '" stroke="#99988f"/></svg>';
+    }
+    render() {
+      const styles = [
+        ['plain', '預設樣式', 'none'],
+        ['strong', '粗框線', 'none'],
+        ['gray', '灰色標題', '#d3d1c7'],
+        ['blue', '藍色標題', '#b5d4f4'],
+        ['green', '綠色標題', '#c0dd97'],
+        ['amber', '琥珀標題', '#fac775']
+      ];
+      const items = styles.map(([v, label, color]) => ({
+        icon: color === 'none'
+          ? '<svg width="14" height="14" viewBox="0 0 14 14"><rect x="1" y="1" width="12" height="12" rx="3" fill="none" stroke="#99988f" stroke-width="' + (v === 'strong' ? 2.5 : 1) + '"/></svg>'
+          : this.swatch(color),
+        title: label,
+        toggle: 'tstyle',
+        isActive: this.data.style === v,
+        onActivate: () => { this.data.style = v; this.apply(); markDirty(); }
+      }));
+      items.push({
+        icon: '<svg width="14" height="14" viewBox="0 0 14 14"><path d="M2 4h10M2 7h10M2 10h10" stroke="#99988f" stroke-width="1.5"/></svg>',
+        title: '緊湊列高',
+        toggle: true,
+        isActive: this.data.compact,
+        onActivate: () => { this.data.compact = !this.data.compact; this.apply(); markDirty(); }
+      });
+      return items;
+    }
+    save() { return this.data; }
+  }
+
+  const EDITOR_I18N = {
+    messages: {
+      ui: {
+        blockTunes: { toggler: { 'Click to tune': '點擊開啟選單', 'or drag to move': '或拖曳移動' } },
+        inlineToolbar: { converter: { 'Convert to': '轉換為' } },
+        toolbar: { toolbox: { Add: '新增區塊' } },
+        popover: { 'Filter': '搜尋', 'Nothing found': '找不到符合的項目', 'Convert to': '轉換為' }
+      },
+      toolNames: {
+        'Text': '文字',
+        'Heading': '標題',
+        'List': '清單',
+        'Checklist': '待辦清單',
+        'Quote': '引用',
+        'Code': '程式碼',
+        'Delimiter': '分隔線',
+        'Table': '表格',
+        'Image': '圖片',
+        'Link': '連結',
+        'Bold': '粗體',
+        'Italic': '斜體'
+      },
+      tools: {
+        link: { 'Add a link': '輸入連結網址' },
+        stub: { 'The block can not be displayed correctly.': '此區塊無法正確顯示' },
+        header: { 'Heading 1': '標題 1', 'Heading 2': '標題 2', 'Heading 3': '標題 3' },
+        list: { 'Ordered': '有序清單', 'Unordered': '無序清單' },
+        table: {
+          'Add row above': '在上方插入列',
+          'Add row below': '在下方插入列',
+          'Delete row': '刪除列',
+          'Add column to left': '在左側插入欄',
+          'Add column to right': '在右側插入欄',
+          'Delete column': '刪除欄',
+          'With headings': '有標題列',
+          'Without headings': '無標題列',
+          'Heading': '標題'
+        },
+        image: {
+          'Caption': '圖片說明',
+          'Select an Image': '選擇圖片',
+          'With border': '加邊框',
+          'Stretch image': '延伸滿版',
+          'With background': '加背景'
+        }
+      },
+      blockTunes: {
+        delete: { 'Delete': '刪除', 'Click to delete': '再點一次確認刪除' },
+        moveUp: { 'Move up': '上移' },
+        moveDown: { 'Move down': '下移' }
+      }
+    }
+  };
+
+  async function mountEditor(data) {
+    lastSelRange = null;
+    if (editor) {
+      const old = editor;
+      editor = null;
+      try { await old.isReady; old.destroy(); } catch (e) { /* 已銷毀就算了 */ }
+    }
+    editor = new EditorJS({
+      holder: 'editor',
+      placeholder: '開始輸入,按「/」插入區塊…',
+      data: data && data.blocks ? data : { blocks: [] },
+      i18n: EDITOR_I18N,
+      tools: {
+        header: { class: Header, inlineToolbar: true, config: { levels: [1, 2, 3], defaultLevel: 2 } },
+        list: { class: List, inlineToolbar: true },
+        checklist: { class: Checklist, inlineToolbar: true },
+        quote: { class: Quote, inlineToolbar: true, config: { quotePlaceholder: '輸入引言', captionPlaceholder: '出處(可留空)' } },
+        code: { class: CodeTool, config: { placeholder: '輸入程式碼' } },
+        delimiter: Delimiter,
+        table: { class: Table, inlineToolbar: true, config: { rows: 2, cols: 3 }, tunes: ['tableStyle'] },
+        tableStyle: { class: TableStyleTune },
+        image: {
+          class: ImageTool,
+          config: {
+            uploader: {
+              uploadByFile: (file) => new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                  const base64 = String(reader.result).split(',')[1];
+                  run('api_uploadImage', file.name, file.type, base64)
+                    .then((x) => resolve({ success: 1, file: { url: x.url } }))
+                    .catch(reject);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+              })
+            }
+          }
+        },
+        driveFile: DriveFileTool,
+        youtube: YouTubeTool
+      },
+      onChange: markDirty
+    });
+    await editor.isReady;
+  }
+
+  function markDirty() {
+    dirty = true;
+    hideTplBar();
+    setStatus('編輯中…');
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(doSave, 2000);
+  }
+
+  async function doSave() {
+    if (!dirty || !currentId || !editor) return;
+    if (isTmp(currentId)) {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(doSave, 800);
+      return;
+    }
+    const id = currentId;
+    const title = $('titleInput').value.trim() || '未命名';
+    dirty = false;
+    setStatus('儲存中…');
+    try {
+      const data = await editor.save();
+      await run('api_savePage', id, title, JSON.stringify(data));
+      const p = pages.get(id);
+      if (p && p.title !== title) { p.title = title; renderTree(); }
+      if (!dirty) setStatus('已儲存 ' + new Date().toLocaleTimeString('zh-TW', { hour12: false }));
+    } catch (e) {
+      dirty = true;
+      setStatus('儲存失敗,10 秒後重試', 'err');
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(doSave, 10000);
+    }
+  }
+
+  async function flushSave() {
+    clearTimeout(saveTimer);
+    if (dirty && !isTmp(currentId)) await doSave();
+  }
+
+  function toggleFolder(id) {
+    expanded.has(id) ? expanded.delete(id) : expanded.add(id);
+    persistExpanded();
+    renderTree();
+  }
+
+  // 拆分筆記(Note Composer):把選取的區塊抽成新子頁,原地留連結。
+  // Editor.js 的整塊選取在按鈕 mousedown(capture 階段)就被清掉,按下當下讀不到,
+  // 所以在拖曳/鍵盤選取結束當下先「快照」範圍,按鈕再用快照。
+  let lastSelRange = null;
+  function readSelRange() {
+    const blockEls = Array.from(document.querySelectorAll('#editor .ce-block'));
+    if (!blockEls.length) return null;
+    // 優先讀 Editor.js 跨區塊選取(整塊藍底,class ce-block--selected)
+    const selEls = blockEls.filter((el) => el.classList.contains('ce-block--selected'));
+    if (selEls.length) {
+      const idxs = selEls.map((el) => blockEls.indexOf(el));
+      return { lo: Math.min.apply(null, idxs), hi: Math.max.apply(null, idxs) };
+    }
+    // 退回原生文字選取(短距離拖曳、未觸發整塊高亮時)
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount && !sel.isCollapsed) {
+      const idxOf = (node) => {
+        const el = node && (node.nodeType === 3 ? node.parentElement : node);
+        const b = el && el.closest ? el.closest('.ce-block') : null;
+        return b ? blockEls.indexOf(b) : -1;
+      };
+      const a = idxOf(sel.anchorNode), b = idxOf(sel.focusNode);
+      if (a >= 0 && b >= 0) return { lo: Math.min(a, b), hi: Math.max(a, b) };
+    }
+    return null;
+  }
+  (function () {
+    const ed = $('editor');
+    if (ed) {
+      const cap = () => setTimeout(() => { lastSelRange = readSelRange(); }, 0);
+      ed.addEventListener('mouseup', cap);
+      ed.addEventListener('keyup', cap);
+    }
+    const btn = $('composeBtn');
+    if (btn) btn.addEventListener('mousedown', (e) => { e.preventDefault(); composeExtract(); });
+  })();
+
+  async function composeExtract() {
+    if (!currentId || !editor || isTmp(currentId)) { setStatus('請先開啟一個頁面'); return; }
+    const r = readSelRange() || lastSelRange;
+    if (!r || r.lo < 0 || r.hi < 0) { setStatus('請先選取要拆出的段落', 'err'); return; }
+    const blockEls = Array.from(document.querySelectorAll('#editor .ce-block'));
+    const lo = r.lo, hi = Math.min(r.hi, blockEls.length - 1);
+    if (lo > hi || lo >= blockEls.length) { setStatus('選取已失效,請重新選取', 'err'); return; }
+    let title = (blockEls[lo].textContent || '').replace(/\s+/g, ' ').trim().slice(0, 60) || '未命名';
+    const pid = currentId;
+    setStatus('拆分中…');
+    try {
+      const data = await editor.save();
+      const picked = data.blocks.slice(lo, hi + 1);
+      if (!picked.length) { setStatus('沒有可拆出的區塊', 'err'); return; }
+      const newPage = await run('api_createPageWithContent', pid, title,
+        JSON.stringify({ time: Date.now(), blocks: picked }));
+      lastSelRange = null;
+      if (currentId !== pid || !editor) { setStatus('頁面已切換,已建立新頁但未改動原頁', 'err'); pages.set(newPage.id, newPage); renderTree(); return; }
+      const linkHtml = '<a href="#page=' + newPage.id + '">' + escapeHtml(title) + '</a>';
+      editor.blocks.insert('paragraph', { text: linkHtml }, {}, hi + 1, false);
+      for (let i = hi; i >= lo; i--) editor.blocks.delete(i);
+      pages.set(newPage.id, newPage);
+      expanded.add(pid); persistExpanded();
+      renderTree();
+      markDirty();
+      await flushSave();
+      setStatus('已拆分成新頁「' + title + '」');
+    } catch (e) {
+      setStatus('拆分失敗:' + (e.message || e), 'err');
+    }
+  }
+
+  async function addFolder() {
+    setStatus('建立資料夾…');
+    try {
+      const p = await run('api_createPage', '', 'folder');
+      pages.set(p.id, p);
+      renderTree();
+      setStatus('已建立資料夾');
+      const name = prompt('資料夾名稱:', '新資料夾');
+      if (name !== null && name.trim() && name.trim() !== p.title) {
+        p.title = name.trim();
+        renderTree();
+        await run('api_renamePage', p.id, p.title);
+      }
+    } catch (e) {
+      setStatus('建立失敗:' + (e.message || e), 'err');
+    }
+  }
+
+  async function openPage(id) {
+    if (id === currentId) return;
+    const pg = pages.get(id);
+    if (pg && pg.kind === 'folder') { toggleFolder(id); return; }
+    if (isTmp(currentId) && pages.has(currentId)) { setStatus('頁面建立中,請稍候…'); return; }
+    document.documentElement.classList.remove('nav-open');
+    await flushSave();
+    hideVersions();
+    hideAi();
+    hideIntg();
+    hideShare();
+    hideTodos();
+    $('page').classList.remove('hidden');
+    currentId = id;
+    localStorage.setItem('gnLastPage', id);
+    renderTree();
+    const seq = ++loadSeq;
+    setStatus('載入中…');
+    $('empty').classList.add('hidden');
+    $('titleInput').classList.remove('hidden');
+    $('actions').classList.remove('hidden');
+    try {
+      const res = await run('api_loadPage', id);
+      if (seq !== loadSeq) return;
+      $('titleInput').value = res.title === '未命名' ? '' : res.title;
+      const data = JSON.parse(res.content || '{}');
+      await mountEditor(data);
+      if (data.blocks && data.blocks.length) hideTplBar(); else showTplBar();
+      if (seq === loadSeq) setStatus('已載入');
+    } catch (e) {
+      if (seq === loadSeq) setStatus('載入失敗:' + (e.message || e), 'err');
+    }
+  }
+
+  function showEmpty() {
+    currentId = null;
+    if (editor) { try { editor.destroy(); } catch (e) {} editor = null; }
+    hideVersions();
+    hideAi();
+    hideIntg();
+    hideShare();
+    hideTodos();
+    $('page').classList.remove('hidden');
+    hideTplBar();
+    $('titleInput').classList.add('hidden');
+    $('actions').classList.add('hidden');
+    $('empty').classList.remove('hidden');
+    setStatus('');
+  }
+
+  // 樂觀建頁:先開空白編輯器,伺服器回覆後再換成真正的 id
+  async function addPage(parentId) {
+    if (isTmp(currentId) && pages.has(currentId)) { setStatus('頁面建立中,請稍候…'); return; }
+    await flushSave();
+    hideVersions();
+    hideAi();
+    hideIntg();
+    hideShare();
+    hideTodos();
+    $('page').classList.remove('hidden');
+    const tempId = 'tmp_' + Date.now();
+    pages.set(tempId, { id: tempId, title: '', parentId: parentId || '', order: 9e15, updatedAt: '', pending: true });
+    if (parentId) { expanded.add(parentId); persistExpanded(); }
+    currentId = tempId;
+    loadSeq++;
+    renderTree();
+    $('empty').classList.add('hidden');
+    $('titleInput').classList.remove('hidden');
+    $('actions').classList.remove('hidden');
+    $('titleInput').value = '';
+    await mountEditor({ blocks: [] });
+    $('titleInput').focus();
+    showTplBar();
+    setStatus('建立頁面中…');
+    try {
+      const real = await run('api_createPage', parentId);
+      const temp = pages.get(tempId);
+      pages.delete(tempId);
+      real.title = (temp && temp.title) || real.title;
+      pages.set(real.id, real);
+      if (currentId === tempId) {
+        currentId = real.id;
+        localStorage.setItem('gnLastPage', real.id);
+      }
+      renderTree();
+      setStatus('已建立');
+      if (dirty) {
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(doSave, 300);
+      }
+    } catch (e) {
+      pages.delete(tempId);
+      if (currentId === tempId) showEmpty();
+      renderTree();
+      setStatus('建立失敗:' + (e.message || e), 'err');
+    }
+  }
+
+  function collectDescendants(id) {
+    const doomed = new Set([id]);
+    let grew = true;
+    while (grew) {
+      grew = false;
+      for (const p of pages.values()) {
+        if (!doomed.has(p.id) && doomed.has(p.parentId)) { doomed.add(p.id); grew = true; }
+      }
+    }
+    return doomed;
+  }
+
+  async function deletePage(id) {
+    const doomed = collectDescendants(id);
+    const title = (pages.get(id) || {}).title || '未命名';
+    const msg = (doomed.size > 1
+      ? '刪除「' + title + '」及其 ' + (doomed.size - 1) + ' 個子頁面?'
+      : '刪除「' + title + '」?') + '\n(會移到回收桶,30 天內可從左下還原)';
+    if (!confirm(msg)) return;
+    doomed.forEach((d) => pages.delete(d));
+    if (doomed.has(currentId)) showEmpty();
+    renderTree();
+    if (isTmp(id)) return;
+    try {
+      await run('api_deletePage', id);
+      setStatus('已刪除');
+    } catch (e) {
+      setStatus('刪除失敗,請重新整理後再試', 'err');
+    }
+  }
+
+  // ---- 全文搜尋 ----
+  $('searchInput').addEventListener('keydown', async (e) => {
+    if (e.key === 'Escape') { exitSearch(); return; }
+    if (e.key !== 'Enter') return;
+    const q = e.target.value.trim();
+    if (!q) { exitSearch(); return; }
+    const tree = $('tree');
+    tree.innerHTML = '<div class="hint">搜尋中…</div>';
+    try {
+      const res = await run('api_search', q);
+      tree.innerHTML = '';
+      const back = document.createElement('button');
+      back.className = 'backBtn';
+      back.textContent = '← 回頁面列表';
+      back.onclick = exitSearch;
+      tree.appendChild(back);
+      if (!res.results.length) {
+        const h = document.createElement('div');
+        h.className = 'hint';
+        h.textContent = '沒有符合的頁面';
+        tree.appendChild(h);
+      }
+      for (const r of res.results) {
+        const item = document.createElement('div');
+        item.className = 'sres';
+        const t = document.createElement('div');
+        t.className = 'srt';
+        t.textContent = r.title || '未命名';
+        item.appendChild(t);
+        if (r.snippet) {
+          const s = document.createElement('div');
+          s.className = 'srs';
+          s.textContent = '…' + r.snippet + '…';
+          item.appendChild(s);
+        }
+        item.onclick = () => { exitSearch(); openPage(r.id); };
+        tree.appendChild(item);
+      }
+    } catch (err) {
+      tree.innerHTML = '<div class="hint">搜尋失敗:' + escapeHtml(err.message || err) + '</div>';
+    }
+  });
+
+  function exitSearch() {
+    $('searchInput').value = '';
+    renderTree();
+  }
+
+  // ---- Markdown 匯出 ----
+  function mdInline(html) {
+    let s = String(html || '');
+    s = s.replace(/<br\s*\/?>/gi, '\n');
+    s = s.replace(/<(b|strong)>([\s\S]*?)<\/\1>/gi, '**$2**');
+    s = s.replace(/<(i|em)>([\s\S]*?)<\/\1>/gi, '*$2*');
+    s = s.replace(/<code[^>]*>([\s\S]*?)<\/code>/gi, '`$1`');
+    s = s.replace(/<a[^>]*href="#page=[^"]*"[^>]*>([\s\S]*?)<\/a>/gi, '$1');
+    s = s.replace(/<a[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi, '[$2]($1)');
+    s = s.replace(/<[^>]+>/g, '');
+    s = s.replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+    return s;
+  }
+
+  function toMarkdown(title, data) {
+    const lines = ['# ' + title, ''];
+    for (const b of (data.blocks || [])) {
+      const d = b.data || {};
+      switch (b.type) {
+        case 'header':
+          lines.push('#'.repeat(d.level || 2) + ' ' + mdInline(d.text), '');
+          break;
+        case 'paragraph':
+          lines.push(mdInline(d.text), '');
+          break;
+        case 'list':
+          (d.items || []).forEach((it, i) => {
+            const t = typeof it === 'string' ? it : String((it && (it.content || it.text)) || '');
+            lines.push(d.style === 'ordered' ? (i + 1) + '. ' + mdInline(t) : '- ' + mdInline(t));
+          });
+          lines.push('');
+          break;
+        case 'checklist':
+          (d.items || []).forEach((it) => lines.push('- [' + (it.checked ? 'x' : ' ') + '] ' + mdInline(it.text)));
+          lines.push('');
+          break;
+        case 'quote':
+          lines.push('> ' + mdInline(d.text));
+          if (d.caption) lines.push('> — ' + mdInline(d.caption));
+          lines.push('');
+          break;
+        case 'code':
+          lines.push('```', d.code || '', '```', '');
+          break;
+        case 'delimiter':
+          lines.push('---', '');
+          break;
+        case 'table': {
+          const rows = (d.content || []).map((r) => '| ' + r.map((c) => mdInline(c)).join(' | ') + ' |');
+          if (rows.length) {
+            const width = (d.content[0] || []).length;
+            const sep = '| ' + Array(width).fill('---').join(' | ') + ' |';
+            if (d.withHeadings) lines.push(rows[0], sep, ...rows.slice(1));
+            else lines.push('| ' + Array(width).fill(' ').join(' | ') + ' |', sep, ...rows);
+            lines.push('');
+          }
+          break;
+        }
+        case 'image':
+          lines.push('![' + mdInline(d.caption || '') + '](' + ((d.file && d.file.url) || '') + ')', '');
+          break;
+        case 'driveFile':
+          lines.push('[' + (d.name || 'Drive 檔案') + '](' + (d.url || '') + ')', '');
+          break;
+        case 'youtube':
+          lines.push(d.url || ('https://youtu.be/' + (d.videoId || '')), '');
+          break;
+      }
+    }
+    return lines.join('\n');
+  }
+
+  async function exportMd() {
+    if (!editor || !currentId) return;
+    const data = await editor.save();
+    const title = $('titleInput').value.trim() || '未命名';
+    const blob = new Blob([toMarkdown(title, data)], { type: 'text/markdown;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = title + '.md';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  }
+
+  // ---- 版本紀錄 ----
+  async function showVersions() {
+    if (!currentId || isTmp(currentId)) return;
+    hideAi();
+    hideIntg();
+    hideShare();
+    const panel = $('versionPanel');
+    panel.classList.remove('hidden');
+    panel.innerHTML = '<div class="vcard">載入版本中…</div>';
+    try {
+      const res = await run('api_listVersions', currentId);
+      const card = document.createElement('div');
+      card.className = 'vcard';
+      const head = document.createElement('div');
+      head.className = 'vhead';
+      const headText = document.createElement('span');
+      headText.textContent = '版本紀錄(每 10 分鐘最多自動存一版,保留最近 10 版;✎ 可自訂名稱)';
+      const close = document.createElement('button');
+      close.textContent = '✕';
+      close.onclick = hideVersions;
+      head.append(headText, close);
+      card.appendChild(head);
+      if (!res.versions.length) {
+        const h = document.createElement('div');
+        h.textContent = '還沒有版本,繼續編輯就會自動產生。';
+        card.appendChild(h);
+      }
+      for (const v of res.versions) {
+        const rowEl = document.createElement('div');
+        rowEl.className = 'vrow';
+        const info = document.createElement('span');
+        info.className = 'vlabel';
+        const time = new Date(v.ts).toLocaleString('zh-TW', { hour12: false });
+        if (v.label) {
+          info.textContent = v.label + ' ';
+          const t = document.createElement('span');
+          t.className = 'vtime';
+          t.textContent = time;
+          info.appendChild(t);
+        } else {
+          info.textContent = time;
+        }
+        const ren = document.createElement('button');
+        ren.className = 'btn';
+        ren.textContent = '✎';
+        ren.title = '自訂版本名稱';
+        ren.onclick = async () => {
+          const name = prompt('版本名稱:', v.label || '');
+          if (name === null) return;
+          try {
+            await run('api_renameVersion', currentId, v.fileId, name.trim());
+            showVersions();
+          } catch (e) { setStatus('命名失敗:' + (e.message || e), 'err'); }
+        };
+        const btn = document.createElement('button');
+        btn.className = 'btn';
+        btn.textContent = '還原';
+        btn.onclick = () => restoreVersion(v.fileId);
+        rowEl.append(info, ren, btn);
+        card.appendChild(rowEl);
+      }
+      panel.innerHTML = '';
+      panel.appendChild(card);
+    } catch (e) {
+      panel.innerHTML = '<div class="vcard">版本載入失敗:' + escapeHtml(e.message || e) + '</div>';
+    }
+  }
+
+  function hideVersions() {
+    $('versionPanel').classList.add('hidden');
+    $('versionPanel').innerHTML = '';
+  }
+
+  async function restoreVersion(fileId) {
+    if (!confirm('還原到這個版本?目前內容會先自動存成一個新版本。')) return;
+    setStatus('還原中…');
+    try {
+      const res = await run('api_restoreVersion', currentId, fileId);
+      dirty = false;
+      clearTimeout(saveTimer);
+      await mountEditor(JSON.parse(res.content || '{}'));
+      hideVersions();
+      setStatus('已還原');
+    } catch (e) {
+      setStatus('還原失敗:' + (e.message || e), 'err');
+    }
+  }
+
+  // ---- Gemini AI(附加功能) ----
+  function toggleAi() {
+    const panel = $('aiPanel');
+    if (panel.classList.contains('hidden')) showAi();
+    else hideAi();
+  }
+
+  function hideAi() {
+    $('aiPanel').classList.add('hidden');
+    $('aiPanel').innerHTML = '';
+  }
+
+  function aiCard() {
+    const panel = $('aiPanel');
+    panel.classList.remove('hidden');
+    panel.innerHTML = '';
+    const card = document.createElement('div');
+    card.className = 'vcard';
+    const head = document.createElement('div');
+    head.className = 'vhead';
+    const headText = document.createElement('span');
+    headText.textContent = 'Gemini AI 助手';
+    const close = document.createElement('button');
+    close.textContent = '✕';
+    close.onclick = hideAi;
+    head.append(headText, close);
+    card.appendChild(head);
+    panel.appendChild(card);
+    return card;
+  }
+
+  function showAi() {
+    hideVersions();
+    hideIntg();
+    hideShare();
+    if (!hasGeminiKey) { showAiKeySetup(); return; }
+    const card = aiCard();
+    const row = document.createElement('div');
+    row.className = 'aiRow';
+    const bSum = document.createElement('button');
+    bSum.className = 'btn';
+    bSum.textContent = '摘要此頁';
+    bSum.onclick = () => aiAction('summary');
+    const bCont = document.createElement('button');
+    bCont.className = 'btn';
+    bCont.textContent = '接著寫';
+    bCont.onclick = () => aiAction('continue');
+    const bModel = document.createElement('button');
+    bModel.className = 'btn';
+    bModel.textContent = '選擇模型';
+    bModel.onclick = showAiModelPicker;
+    const bKey = document.createElement('button');
+    bKey.className = 'btn';
+    bKey.textContent = '金鑰設定';
+    bKey.onclick = showAiKeySetup;
+    const bPing = document.createElement('button');
+    bPing.className = 'btn';
+    bPing.textContent = '連線測試';
+    bPing.onclick = async () => {
+      const result = $('aiResult');
+      result.classList.remove('hidden');
+      result.textContent = '測試中…(會實際呼叫一次 Gemini)';
+      try {
+        const r = await run('api_geminiPing');
+        result.textContent = r.ok
+          ? '連線成功!模型 ' + r.model + ' 回覆:' + r.reply
+          : '連線失敗(模型 ' + r.model + '):' + r.detail;
+      } catch (e) {
+        result.textContent = '測試失敗:' + (e.message || e);
+      }
+    };
+    row.append(bSum, bCont, bPing, bModel, bKey);
+    card.appendChild(row);
+    const askRow = document.createElement('div');
+    askRow.className = 'aiRow';
+    const q = document.createElement('input');
+    q.className = 'aiInput';
+    q.id = 'aiQuestion';
+    q.placeholder = '根據這一頁的內容問問題,按 Enter…';
+    q.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && q.value.trim()) aiAction('ask', q.value.trim());
+    });
+    askRow.appendChild(q);
+    card.appendChild(askRow);
+    const result = document.createElement('div');
+    result.className = 'aiResult hidden';
+    result.id = 'aiResult';
+    card.appendChild(result);
+    const note = document.createElement('div');
+    note.className = 'aiNote';
+    note.textContent = '目前模型:' + geminiModel + '。使用 Gemini API 免費層:內容會傳給 Google 處理,忙線時會自動重試。';
+    card.appendChild(note);
+  }
+
+  async function showAiModelPicker() {
+    const card = aiCard();
+    const loading = document.createElement('div');
+    loading.style.fontSize = '13px';
+    loading.textContent = '正在從你的金鑰讀取可用模型…';
+    card.appendChild(loading);
+    try {
+      const res = await run('api_listGeminiModels');
+      loading.remove();
+      const row = document.createElement('div');
+      row.className = 'aiRow';
+      const sel = document.createElement('select');
+      sel.className = 'aiInput';
+      for (const m of res.models) {
+        const opt = document.createElement('option');
+        opt.value = m.id;
+        opt.textContent = m.id + (m.displayName && m.displayName !== m.id ? '(' + m.displayName + ')' : '');
+        sel.appendChild(opt);
+      }
+      if (res.current && !res.models.some((m) => m.id === res.current)) {
+        const opt = document.createElement('option');
+        opt.value = res.current;
+        opt.textContent = res.current;
+        sel.appendChild(opt);
+      }
+      sel.value = res.current;
+      const save = document.createElement('button');
+      save.className = 'btn';
+      save.textContent = '使用此模型';
+      save.onclick = async () => {
+        save.textContent = '儲存中…';
+        try {
+          await run('api_setGeminiModel', sel.value);
+          geminiModel = sel.value;
+          showAi();
+          setStatus('模型已切換為 ' + sel.value);
+        } catch (e) {
+          save.textContent = '使用此模型';
+          setStatus('切換失敗:' + (e.message || e), 'err');
+        }
+      };
+      const back = document.createElement('button');
+      back.className = 'btn';
+      back.textContent = '返回';
+      back.onclick = showAi;
+      row.append(sel, save, back);
+      card.appendChild(row);
+      const note = document.createElement('div');
+      note.className = 'aiNote';
+      note.textContent = '建議:gemini-flash-latest(自動跟隨最新版 flash)或 gemini-3.5-flash;pro 系列較聰明但免費額度較少;gemma 系列額度另計、能力較弱。清單是用你的金鑰即時讀的,永遠是最新。';
+      card.appendChild(note);
+    } catch (e) {
+      loading.textContent = '讀取失敗:' + (e.message || e);
+      const back = document.createElement('button');
+      back.className = 'btn';
+      back.textContent = '返回';
+      back.onclick = showAi;
+      card.appendChild(back);
+    }
+  }
+
+  function showAiKeySetup() {
+    const card = aiCard();
+    const p = document.createElement('div');
+    p.style.fontSize = '13px';
+    p.style.lineHeight = '1.7';
+    p.innerHTML = '到 <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a> 用同一個 Google 帳號免費建立 API 金鑰,貼在下面。金鑰只存在這個應用程式的伺服器端設定,不會出現在程式碼裡。';
+    card.appendChild(p);
+    const row = document.createElement('div');
+    row.className = 'aiRow';
+    const input = document.createElement('input');
+    input.className = 'aiInput';
+    input.type = 'password';
+    input.placeholder = '貼上 API 金鑰(AIza 開頭)…';
+    const save = document.createElement('button');
+    save.className = 'btn';
+    save.textContent = '儲存金鑰';
+    save.onclick = async () => {
+      const key = input.value.trim();
+      if (!key) return;
+      save.textContent = '儲存中…';
+      try {
+        await run('api_setGeminiKey', key);
+        hasGeminiKey = true;
+        showAi();
+        setStatus('金鑰已儲存');
+      } catch (e) {
+        save.textContent = '儲存金鑰';
+        setStatus('儲存失敗:' + (e.message || e), 'err');
+      }
+    };
+    row.append(input, save);
+    card.appendChild(row);
+  }
+
+  async function pageAsMarkdown() {
+    const data = await editor.save();
+    return toMarkdown($('titleInput').value.trim() || '未命名', data);
+  }
+
+  async function aiAction(kind, question) {
+    if (!editor || !currentId) return;
+    const result = $('aiResult');
+    if (!result) return;
+    result.classList.remove('hidden');
+    result.textContent = 'AI 處理中…(通常幾秒,忙線時會自動重試)';
+    try {
+      const md = await pageAsMarkdown();
+      let prompt;
+      if (kind === 'summary') {
+        prompt = '你是筆記助手。請用台灣慣用的正體中文,將以下筆記整理成條列重點摘要,直接輸出重點,不要開場白:\n\n' + md;
+      } else if (kind === 'continue') {
+        prompt = '你是寫作助手。請用台灣慣用的正體中文,自然接續下面這篇筆記,續寫一到兩段。只輸出續寫內容,不要開場白:\n\n' + md;
+      } else {
+        prompt = '請根據以下筆記內容,用台灣慣用的正體中文回答問題。若筆記中沒有答案就直說。\n\n筆記內容:\n' + md + '\n\n問題:' + question;
+      }
+      const res = await run('api_gemini', prompt);
+      result.textContent = '';
+      const text = document.createElement('div');
+      text.textContent = res.text;
+      const row = document.createElement('div');
+      row.className = 'aiRow';
+      const ins = document.createElement('button');
+      ins.className = 'btn';
+      ins.textContent = '插入頁面末尾';
+      ins.onclick = () => {
+        const lines = res.text.split('\n').filter((l) => l.trim());
+        for (const line of lines) {
+          editor.blocks.insert('paragraph', { text: escapeHtml(line) }, {}, editor.blocks.getBlocksCount(), false);
+        }
+        markDirty();
+        setStatus('已插入 ' + lines.length + ' 段');
+      };
+      const cp = document.createElement('button');
+      cp.className = 'btn';
+      cp.textContent = '複製';
+      cp.onclick = async () => {
+        try {
+          await navigator.clipboard.writeText(res.text);
+          setStatus('已複製');
+        } catch (e) {
+          const ta = document.createElement('textarea');
+          ta.value = res.text;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          ta.remove();
+          setStatus('已複製');
+        }
+      };
+      row.append(ins, cp);
+      result.append(text, row);
+    } catch (e) {
+      result.textContent = 'AI 失敗:' + (e.message || e);
+    }
+  }
+
+  // ---- 頁面範本 ----
+  const TEMPLATES = {
+    meeting: {
+      name: '會議記錄',
+      blocks: [
+        { type: 'header', data: { text: '會議記錄', level: 1 } },
+        { type: 'paragraph', data: { text: '日期: | 時間: | 地點:' } },
+        { type: 'header', data: { text: '出席人員', level: 2 } },
+        { type: 'paragraph', data: { text: '' } },
+        { type: 'header', data: { text: '討論事項', level: 2 } },
+        { type: 'list', data: { style: 'unordered', items: ['議題一', '議題二'] } },
+        { type: 'header', data: { text: '決議與待辦', level: 2 } },
+        { type: 'checklist', data: { items: [{ text: '待辦事項', checked: false }] } }
+      ]
+    },
+    weekly: {
+      name: '週計畫',
+      blocks: [
+        { type: 'header', data: { text: '週計畫', level: 1 } },
+        { type: 'header', data: { text: '本週目標', level: 2 } },
+        { type: 'checklist', data: { items: [{ text: '目標一', checked: false }, { text: '目標二', checked: false }] } },
+        { type: 'header', data: { text: '每日安排', level: 2 } },
+        { type: 'table', data: { withHeadings: true, content: [['星期', '重點事項', '備註'], ['一', '', ''], ['二', '', ''], ['三', '', ''], ['四', '', ''], ['五', '', ''], ['六', '', ''], ['日', '', '']] } }
+      ]
+    },
+    lesson: {
+      name: '課堂筆記',
+      blocks: [
+        { type: 'header', data: { text: '課堂筆記', level: 1 } },
+        { type: 'paragraph', data: { text: '科目: | 班級: | 日期:' } },
+        { type: 'header', data: { text: '教學重點', level: 2 } },
+        { type: 'list', data: { style: 'unordered', items: ['重點一', '重點二'] } },
+        { type: 'header', data: { text: '學生狀況/提問', level: 2 } },
+        { type: 'paragraph', data: { text: '' } },
+        { type: 'header', data: { text: '回家作業', level: 2 } },
+        { type: 'checklist', data: { items: [{ text: '', checked: false }] } }
+      ]
+    },
+    reading: {
+      name: '閱讀筆記',
+      blocks: [
+        { type: 'header', data: { text: '閱讀筆記', level: 1 } },
+        { type: 'paragraph', data: { text: '書名: | 作者: | 進度:' } },
+        { type: 'quote', data: { text: '印象最深的一句話', caption: '頁數', alignment: 'left' } },
+        { type: 'header', data: { text: '重點整理', level: 2 } },
+        { type: 'list', data: { style: 'unordered', items: ['重點一'] } },
+        { type: 'header', data: { text: '心得與行動', level: 2 } },
+        { type: 'paragraph', data: { text: '' } }
+      ]
+    },
+    project: {
+      name: '專案追蹤',
+      blocks: [
+        { type: 'header', data: { text: '專案追蹤', level: 1 } },
+        { type: 'paragraph', data: { text: '負責人: | 期限: | 狀態:' } },
+        { type: 'header', data: { text: '目標與範圍', level: 2 } },
+        { type: 'paragraph', data: { text: '' } },
+        { type: 'header', data: { text: '任務清單', level: 2 } },
+        { type: 'checklist', data: { items: [{ text: '任務一', checked: false }, { text: '任務二', checked: false }] } },
+        { type: 'header', data: { text: '進度與里程碑', level: 2 } },
+        { type: 'table', data: { withHeadings: true, content: [['項目', '負責人', '期限', '狀態'], ['', '', '', '']] } },
+        { type: 'header', data: { text: '風險與備註', level: 2 } },
+        { type: 'paragraph', data: { text: '' } }
+      ]
+    },
+    counsel: {
+      name: '學生輔導紀錄',
+      blocks: [
+        { type: 'header', data: { text: '學生輔導紀錄', level: 1 } },
+        { type: 'paragraph', data: { text: '學生: | 班級: | 日期:' } },
+        { type: 'header', data: { text: '事由/主題', level: 2 } },
+        { type: 'paragraph', data: { text: '' } },
+        { type: 'header', data: { text: '晤談內容', level: 2 } },
+        { type: 'paragraph', data: { text: '' } },
+        { type: 'header', data: { text: '處遇與建議', level: 2 } },
+        { type: 'list', data: { style: 'unordered', items: [''] } },
+        { type: 'header', data: { text: '後續追蹤', level: 2 } },
+        { type: 'checklist', data: { items: [{ text: '', checked: false }] } }
+      ]
+    },
+    event: {
+      name: '活動企劃',
+      blocks: [
+        { type: 'header', data: { text: '活動企劃', level: 1 } },
+        { type: 'paragraph', data: { text: '活動名稱: | 日期: | 地點: | 對象:' } },
+        { type: 'header', data: { text: '目的', level: 2 } },
+        { type: 'paragraph', data: { text: '' } },
+        { type: 'header', data: { text: '流程與分工', level: 2 } },
+        { type: 'table', data: { withHeadings: true, content: [['時間', '流程', '負責人'], ['', '', '']] } },
+        { type: 'header', data: { text: '所需資源', level: 2 } },
+        { type: 'checklist', data: { items: [{ text: '', checked: false }] } },
+        { type: 'header', data: { text: '檢討', level: 2 } },
+        { type: 'paragraph', data: { text: '' } }
+      ]
+    },
+    journal: {
+      name: '日記/反思',
+      blocks: [
+        { type: 'header', data: { text: '今日反思', level: 1 } },
+        { type: 'paragraph', data: { text: '日期:' } },
+        { type: 'header', data: { text: '今天發生了什麼', level: 2 } },
+        { type: 'paragraph', data: { text: '' } },
+        { type: 'header', data: { text: '順利/不順利的地方', level: 2 } },
+        { type: 'list', data: { style: 'unordered', items: [''] } },
+        { type: 'header', data: { text: '明天想做的一件事', level: 2 } },
+        { type: 'paragraph', data: { text: '' } }
+      ]
+    },
+    classroom: {
+      name: '班級經營',
+      blocks: [
+        { type: 'header', data: { text: '班級經營', level: 1 } },
+        { type: 'paragraph', data: { text: '班級: | 週次:' } },
+        { type: 'header', data: { text: '本週重點', level: 2 } },
+        { type: 'checklist', data: { items: [{ text: '', checked: false }] } },
+        { type: 'header', data: { text: '學生狀況', level: 2 } },
+        { type: 'table', data: { withHeadings: true, content: [['姓名', '事項', '處理'], ['', '', '']] } },
+        { type: 'header', data: { text: '親師聯繫', level: 2 } },
+        { type: 'paragraph', data: { text: '' } }
+      ]
+    }
+  };
+
+  async function applyBlocks(blocks) {
+    hideTplBar();
+    await editor.render(JSON.parse(JSON.stringify({ blocks: blocks })));
+    markDirty();
+  }
+
+  function showTplBar() {
+    const bar = $('tplBar');
+    bar.innerHTML = '';
+    const label = document.createElement('span');
+    label.className = 'aiNote';
+    label.textContent = '套用範本:';
+    bar.appendChild(label);
+    for (const key of Object.keys(TEMPLATES)) {
+      const b = document.createElement('button');
+      b.className = 'btn';
+      b.textContent = TEMPLATES[key].name;
+      b.onclick = () => applyBlocks(TEMPLATES[key].blocks);
+      bar.appendChild(b);
+    }
+    for (const t of customTemplates) {
+      const wrap = document.createElement('span');
+      wrap.style.display = 'inline-flex';
+      const b = document.createElement('button');
+      b.className = 'btn';
+      b.textContent = '★ ' + t.name;
+      b.title = '我的範本';
+      b.onclick = async () => {
+        setStatus('載入範本…');
+        try {
+          const res = await run('api_getTemplate', t.id);
+          const data = JSON.parse(res.content || '{}');
+          await applyBlocks(data.blocks || []);
+          setStatus('已套用範本');
+        } catch (e) { setStatus('載入失敗:' + (e.message || e), 'err'); }
+      };
+      const del = document.createElement('button');
+      del.className = 'btn';
+      del.textContent = '✕';
+      del.title = '刪除這個自訂範本';
+      del.onclick = async (e) => {
+        e.stopPropagation();
+        if (!confirm('刪除自訂範本「' + t.name + '」?')) return;
+        try {
+          const res = await run('api_deleteTemplate', t.id);
+          customTemplates = res.templates || [];
+          showTplBar();
+        } catch (err) { setStatus('刪除失敗:' + (err.message || err), 'err'); }
+      };
+      wrap.append(b, del);
+      bar.appendChild(wrap);
+    }
+    bar.classList.remove('hidden');
+  }
+
+  function hideTplBar() {
+    $('tplBar').classList.add('hidden');
+  }
+
+  async function saveAsTemplate() {
+    if (!editor || !currentId || isTmp(currentId)) return;
+    const name = prompt('把目前這頁存成範本,命名為:', $('titleInput').value.trim() || '我的範本');
+    if (name === null) return;
+    setStatus('儲存範本…');
+    try {
+      const data = await editor.save();
+      const res = await run('api_saveTemplate', name.trim() || '我的範本', JSON.stringify(data));
+      customTemplates = res.templates || [];
+      setStatus('已存為範本「' + (name.trim() || '我的範本') + '」');
+    } catch (e) {
+      setStatus('存範本失敗:' + (e.message || e), 'err');
+    }
+  }
+
+  // ---- Markdown 匯入 ----
+  function inlineMd(s) {
+    return escapeHtml(s)
+      .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+      .replace(/(^|[^*])\*([^*\s][^*]*)\*/g, '$1<i>$2</i>')
+      .replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>')
+      .replace(/\[([^\]]*)\]\((https?:[^)\s]+)\)/g, '<a href="$2">$1</a>');
+  }
+
+  function mdToBlocks(text) {
+    const lines = String(text).replace(/\r\n/g, '\n').split('\n');
+    const blocks = [];
+    let i = 0;
+    while (i < lines.length) {
+      const t = lines[i].trim();
+      if (!t) { i++; continue; }
+      if (/^<\/?[a-zA-Z][^>]*>$/.test(t)) { i++; continue; }
+      if (t.startsWith('```')) {
+        const buf = [];
+        i++;
+        while (i < lines.length && !lines[i].trim().startsWith('```')) { buf.push(lines[i]); i++; }
+        i++;
+        blocks.push({ type: 'code', data: { code: buf.join('\n') } });
+        continue;
+      }
+      const h = t.match(/^(#{1,6})\s+(.*)/);
+      if (h) { blocks.push({ type: 'header', data: { text: inlineMd(h[2]), level: Math.min(h[1].length, 3) } }); i++; continue; }
+      if (/^(-{3,}|\*{3,})$/.test(t)) { blocks.push({ type: 'delimiter', data: {} }); i++; continue; }
+      const img = t.match(/^!\[([^\]]*)\]\(([^)\s]+)\)/);
+      if (img) { blocks.push({ type: 'image', data: { file: { url: img[2] }, caption: img[1] || '', withBorder: false, stretched: false, withBackground: false } }); i++; continue; }
+      if (/^\|.*\|$/.test(t)) {
+        const rows = [];
+        while (i < lines.length && /^\|.*\|$/.test(lines[i].trim())) { rows.push(lines[i].trim()); i++; }
+        const hasSep = rows.length > 1 && /^\|[\s:|-]+\|$/.test(rows[1]);
+        const cells = rows
+          .filter((r) => !/^\|[\s:|-]+\|$/.test(r))
+          .map((r) => r.slice(1, -1).split('|').map((c) => inlineMd(c.trim())));
+        if (cells.length) blocks.push({ type: 'table', data: { withHeadings: hasSep, content: cells } });
+        continue;
+      }
+      if (/^[-*]\s+\[( |x|X)\]\s+/.test(t)) {
+        const items = [];
+        while (i < lines.length) {
+          const m = lines[i].trim().match(/^[-*]\s+\[( |x|X)\]\s+(.*)/);
+          if (!m) break;
+          items.push({ text: inlineMd(m[2]), checked: m[1].toLowerCase() === 'x' });
+          i++;
+        }
+        blocks.push({ type: 'checklist', data: { items: items } });
+        continue;
+      }
+      if (/^[-*]\s+/.test(t)) {
+        const items = [];
+        while (i < lines.length && /^[-*]\s+/.test(lines[i].trim()) && !/^[-*]\s+\[/.test(lines[i].trim())) {
+          items.push(inlineMd(lines[i].trim().replace(/^[-*]\s+/, '')));
+          i++;
+        }
+        blocks.push({ type: 'list', data: { style: 'unordered', items: items } });
+        continue;
+      }
+      if (/^\d+\.\s+/.test(t)) {
+        const items = [];
+        while (i < lines.length && /^\d+\.\s+/.test(lines[i].trim())) {
+          items.push(inlineMd(lines[i].trim().replace(/^\d+\.\s+/, '')));
+          i++;
+        }
+        blocks.push({ type: 'list', data: { style: 'ordered', items: items } });
+        continue;
+      }
+      if (t.startsWith('>')) {
+        const buf = [];
+        while (i < lines.length && lines[i].trim().startsWith('>')) {
+          buf.push(lines[i].trim().replace(/^>\s?/, ''));
+          i++;
+        }
+        blocks.push({ type: 'quote', data: { text: inlineMd(buf.join('\n')).replace(/\n/g, '<br>'), caption: '', alignment: 'left' } });
+        continue;
+      }
+      const yt = YouTubeTool.extractId(t);
+      if (/^https?:\/\/\S+$/.test(t) && yt) { blocks.push({ type: 'youtube', data: { url: t, videoId: yt } }); i++; continue; }
+      blocks.push({ type: 'paragraph', data: { text: inlineMd(t) } });
+      i++;
+    }
+    return blocks;
+  }
+
+  const cleanNotionName = (s) => String(s).replace(/\s+[0-9a-f]{32}$/i, '').trim();
+
+  function csvParse(text) {
+    const rows = [];
+    let row = [], cur = '', q = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (q) {
+        if (c === '"') {
+          if (text[i + 1] === '"') { cur += '"'; i++; } else q = false;
+        } else cur += c;
+      } else if (c === '"') q = true;
+      else if (c === ',') { row.push(cur); cur = ''; }
+      else if (c === '\n') { row.push(cur.replace(/\r$/, '')); rows.push(row); row = []; cur = ''; }
+      else cur += c;
+    }
+    if (cur !== '' || row.length) { row.push(cur.replace(/\r$/, '')); rows.push(row); }
+    return rows.filter((r) => r.some((c) => c.trim() !== ''));
+  }
+
+  // 把 md 裡指向 zip 內檔案的圖片連結,上傳到 Drive 後改寫成雲端網址
+  async function rewriteZipImages(md, baseDir, zip, stats) {
+    const re = /!\[([^\]]*)\]\(([^)]+)\)/g;
+    const MIMES = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml' };
+    let out = '', last = 0, m;
+    while ((m = re.exec(md))) {
+      out += md.slice(last, m.index);
+      last = re.lastIndex;
+      const target = m[2].split(' ')[0];
+      if (/^https?:/.test(target)) { out += m[0]; continue; }
+      const rel = decodeURIComponent(target);
+      const ext = (rel.split('.').pop() || '').toLowerCase();
+      const mime = MIMES[ext];
+      let entry = zip.files[baseDir + rel] || zip.files[rel];
+      if (!entry) {
+        const base = rel.split('/').pop();
+        const hit = Object.keys(zip.files).find((k) => !zip.files[k].dir && (k === base || k.endsWith('/' + base)));
+        if (hit) entry = zip.files[hit];
+      }
+      if (entry && mime && stats.uploaded < 30) {
+        try {
+          setStatus('上傳圖片 ' + (stats.uploaded + 1) + '…');
+          const b64 = await entry.async('base64');
+          const res = await run('api_uploadImage', rel.split('/').pop(), mime, b64);
+          stats.uploaded++;
+          out += '![' + m[1] + '](' + res.url + ')';
+          continue;
+        } catch (e) { /* 上傳失敗就降級成文字 */ }
+      }
+      out += m[1] || '';
+    }
+    return out + md.slice(last);
+  }
+
+  async function importZip(file) {
+    if (typeof JSZip === 'undefined') throw new Error('JSZip 尚未載入,請重新整理後再試');
+    setStatus('解壓縮中…');
+    let zip = await JSZip.loadAsync(file);
+    for (let hop = 0; hop < 3; hop++) {
+      const names = Object.keys(zip.files).filter((p) => !zip.files[p].dir && !p.startsWith('__MACOSX'));
+      if (names.some((p) => /\.(md|csv)$/i.test(p))) break;
+      const inner = names.find((p) => p.toLowerCase().endsWith('.zip'));
+      if (!inner) break;
+      setStatus('解開內層壓縮…');
+      zip = await JSZip.loadAsync(await zip.files[inner].async('arraybuffer'));
+    }
+    const paths = Object.keys(zip.files).filter((p) => !zip.files[p].dir && !p.startsWith('__MACOSX'));
+    const mds = paths.filter((p) => p.toLowerCase().endsWith('.md'))
+      .sort((a, b) => a.split('/').length - b.split('/').length || a.localeCompare(b));
+    const csvs = paths.filter((p) => p.toLowerCase().endsWith('.csv') && !/_all\.csv$/i.test(p));
+    if (!mds.length && !csvs.length) throw new Error('壓縮檔裡找不到 .md 或 .csv');
+    const stats = { pages: 0, uploaded: 0 };
+    const dirToPage = {};   // 「資料夾路徑」→ 對應頁 id(Notion 子頁面放在同名資料夾)
+    const dirOwner = {};    // 「所在資料夾」→ 該層第一個 md 頁 id(同層 csv 掛它底下)
+    let firstId = null;
+    for (const p of mds) {
+      const base = p.slice(0, -3);
+      const dirName = p.includes('/') ? p.slice(0, p.lastIndexOf('/')) : '';
+      const parentId = dirToPage[dirName] || '';
+      let text = await zip.files[p].async('string');
+      text = await rewriteZipImages(text, dirName ? dirName + '/' : '', zip, stats);
+      text = text.replace(/\[([^\]]*)\]\((?!https?:)[^)]*\)/g, '$1');
+      const blocks = mdToBlocks(text);
+      let title = cleanNotionName(base.split('/').pop());
+      if (blocks.length && blocks[0].type === 'header' && blocks[0].data.level === 1) {
+        title = blocks[0].data.text.replace(/<[^>]+>/g, '') || title;
+        blocks.shift();
+      }
+      setStatus('建立頁面「' + title + '」…');
+      const pg = await run('api_createPage', parentId);
+      await run('api_savePage', pg.id, title, JSON.stringify({ time: Date.now(), blocks: blocks }));
+      pg.title = title;
+      pages.set(pg.id, pg);
+      dirToPage[base] = pg.id;
+      if (!dirOwner[dirName]) dirOwner[dirName] = pg.id;
+      if (parentId) expanded.add(parentId);
+      if (!firstId) firstId = pg.id;
+      stats.pages++;
+    }
+    for (const p of csvs) {
+      const dirName = p.includes('/') ? p.slice(0, p.lastIndexOf('/')) : '';
+      const parentId = dirToPage[dirName] || dirOwner[dirName] || '';
+      const rows = csvParse(await zip.files[p].async('string'))
+        .slice(0, 50)
+        .map((r) => r.slice(0, 10).map((c) => escapeHtml(c)));
+      if (!rows.length) continue;
+      const title = cleanNotionName(p.split('/').pop().replace(/\.csv$/i, ''));
+      setStatus('建立資料表「' + title + '」…');
+      const pg = await run('api_createPage', parentId);
+      await run('api_savePage', pg.id, title, JSON.stringify({
+        time: Date.now(),
+        blocks: [{ type: 'table', data: { withHeadings: true, content: rows } }]
+      }));
+      pg.title = title;
+      pages.set(pg.id, pg);
+      if (parentId) expanded.add(parentId);
+      if (!firstId) firstId = pg.id;
+      stats.pages++;
+    }
+    persistExpanded();
+    renderTree();
+    if (firstId) await openPage(firstId);
+    setStatus('匯入完成:' + stats.pages + ' 頁、' + stats.uploaded + ' 張圖片');
+  }
+
+  // ---- 整站備份匯出 ----
+  async function backupAll() {
+    setStatus('備份中…');
+    try {
+      const res = await run('api_exportAll');
+      const zip = new JSZip();
+      const sanitize = (s) => (String(s || '未命名').replace(/[\\/:*?"<>|#%{}]/g, '_').trim() || '未命名').slice(0, 60);
+      const walk = (pid, prefix) => {
+        const kids = res.pages
+          .filter((p) => p.parentId === pid)
+          .sort((a, b) => a.order - b.order || a.title.localeCompare(b.title));
+        const used = {};
+        for (const p of kids) {
+          let name = sanitize(p.title);
+          if (used[name]) { used[name]++; name += '_' + used[name]; } else used[name] = 1;
+          let md;
+          try { md = toMarkdown(p.title || '未命名', JSON.parse(p.content || '{}')); } catch (e) { md = '# ' + p.title; }
+          zip.file(prefix + name + '.md', md);
+          walk(p.id, prefix + name + '/');
+        }
+      };
+      walk('', '');
+      zip.file('_backup.json', JSON.stringify(res.pages));
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = '筆記備份-' + new Date().toISOString().slice(0, 10) + '.zip';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      setStatus('備份完成:' + res.pages.length + ' 頁');
+    } catch (e) {
+      setStatus('備份失敗:' + (e.message || e), 'err');
+    }
+  }
+
+  // ---- 待辦彙整 ----
+  function hideTodos() {
+    $('todoView').classList.add('hidden');
+    $('todoView').innerHTML = '';
+  }
+
+  async function showTodos() {
+    document.documentElement.classList.remove('nav-open');
+    await flushSave();
+    hideVersions(); hideAi(); hideIntg(); hideShare();
+    $('page').classList.add('hidden');
+    const view = $('todoView');
+    view.classList.remove('hidden');
+    view.innerHTML = '<div class="vcard">彙整中…(掃描所有頁面,稍候)</div>';
+    try {
+      const res = await run('api_allTodos');
+      view.innerHTML = '';
+      const head = document.createElement('div');
+      head.className = 'todoHead';
+      const h = document.createElement('h2');
+      const total = res.groups.reduce((n, g) => n + g.items.length, 0);
+      h.textContent = '待辦彙整（' + total + ' 項未完成，' + res.groups.length + ' 頁）';
+      const close = document.createElement('button');
+      close.className = 'btn';
+      close.textContent = '關閉';
+      close.onclick = () => { hideTodos(); $('page').classList.remove('hidden'); };
+      head.append(h, close);
+      view.appendChild(head);
+      if (!res.groups.length) {
+        const e = document.createElement('div');
+        e.className = 'aiNote';
+        e.textContent = '目前沒有未完成的待辦。';
+        view.appendChild(e);
+        return;
+      }
+      for (const g of res.groups) {
+        const grp = document.createElement('div');
+        grp.className = 'todoGroup';
+        const t = document.createElement('h3');
+        const a = document.createElement('a');
+        a.textContent = g.title;
+        a.onclick = () => { hideTodos(); $('page').classList.remove('hidden'); openPage(g.pageId); };
+        t.appendChild(a);
+        grp.appendChild(t);
+        for (const it of g.items) {
+          const item = document.createElement('div');
+          item.className = 'todoItem';
+          const span = document.createElement('span');
+          span.textContent = it;
+          item.appendChild(span);
+          grp.appendChild(item);
+        }
+        view.appendChild(grp);
+      }
+    } catch (e) {
+      view.innerHTML = '<div class="vcard">彙整失敗:' + escapeHtml(e.message || e) + '</div>';
+    }
+  }
+
+  // ---- 回收桶 ----
+  async function showTrash() {
+    const tree = $('tree');
+    tree.innerHTML = '<div class="hint">載入回收桶…</div>';
+    try {
+      const res = await run('api_listTrash');
+      tree.innerHTML = '';
+      const back = document.createElement('button');
+      back.className = 'backBtn';
+      back.textContent = '← 回頁面列表';
+      back.onclick = () => renderTree();
+      tree.appendChild(back);
+      if (!res.items.length) {
+        const h = document.createElement('div');
+        h.className = 'hint';
+        h.textContent = '回收桶是空的(刪除的頁面保留 30 天)';
+        tree.appendChild(h);
+        return;
+      }
+      for (const it of res.items) {
+        const item = document.createElement('div');
+        item.className = 'sres';
+        const t = document.createElement('div');
+        t.className = 'srt';
+        t.textContent = it.title || '未命名';
+        const s = document.createElement('div');
+        s.className = 'srs';
+        s.textContent = '刪於 ' + new Date(it.deletedAt).toLocaleString('zh-TW', { hour12: false });
+        const row = document.createElement('div');
+        row.className = 'aiRow';
+        const rest = document.createElement('button');
+        rest.className = 'btn';
+        rest.textContent = '還原';
+        rest.onclick = async () => {
+          setStatus('還原中…');
+          try {
+            await run('api_restorePage', it.id);
+            await reloadIndex();
+            setStatus('已還原「' + (it.title || '未命名') + '」');
+            showTrash();
+          } catch (e) { setStatus('還原失敗:' + (e.message || e), 'err'); }
+        };
+        row.appendChild(rest);
+        item.append(t, s, row);
+        tree.appendChild(item);
+      }
+      const clear = document.createElement('button');
+      clear.className = 'backBtn';
+      clear.textContent = '清空回收桶(永久刪除全部)';
+      clear.onclick = async () => {
+        if (!confirm('永久刪除回收桶內全部頁面?這個動作無法復原。')) return;
+        setStatus('清空中…');
+        try {
+          const r = await run('api_emptyTrash');
+          setStatus('已永久刪除 ' + r.purged + ' 頁');
+          showTrash();
+        } catch (e) { setStatus('清空失敗:' + (e.message || e), 'err'); }
+      };
+      tree.appendChild(clear);
+    } catch (e) {
+      tree.innerHTML = '<div class="hint">回收桶載入失敗:' + escapeHtml(e.message || e) + '</div>';
+    }
+  }
+
+  $('mdFile').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    setStatus('匯入中…');
+    try {
+      if (/\.zip$/i.test(file.name)) {
+        await importZip(file);
+        return;
+      }
+      const text = await file.text();
+      const blocks = mdToBlocks(text);
+      let title = cleanNotionName(file.name.replace(/\.(md|markdown|txt)$/i, ''));
+      if (blocks.length && blocks[0].type === 'header' && blocks[0].data.level === 1) {
+        title = blocks[0].data.text.replace(/<[^>]+>/g, '') || title;
+        blocks.shift();
+      }
+      const p = await run('api_createPage', '');
+      await run('api_savePage', p.id, title, JSON.stringify({ time: Date.now(), blocks: blocks }));
+      p.title = title;
+      pages.set(p.id, p);
+      renderTree();
+      await openPage(p.id);
+      setStatus('已匯入「' + title + '」');
+    } catch (err) {
+      setStatus('匯入失敗:' + (err.message || err), 'err');
+    }
+  });
+
+  // ---- Google 服務整合面板 ----
+  function toggleIntg() {
+    const panel = $('intgPanel');
+    if (panel.classList.contains('hidden')) showIntg();
+    else hideIntg();
+  }
+
+  function hideIntg() {
+    $('intgPanel').classList.add('hidden');
+    $('intgPanel').innerHTML = '';
+  }
+
+  function intgGroup(card, titleText) {
+    const g = document.createElement('div');
+    g.className = 'intgGroup';
+    const t = document.createElement('div');
+    t.className = 'intgTitle';
+    t.textContent = titleText;
+    g.appendChild(t);
+    card.appendChild(g);
+    return g;
+  }
+
+  function intgBtn(text, onclick) {
+    const b = document.createElement('button');
+    b.className = 'btn';
+    b.textContent = text;
+    b.onclick = onclick;
+    return b;
+  }
+
+  function intgNote(g) {
+    const s = document.createElement('div');
+    s.className = 'aiNote';
+    g.appendChild(s);
+    return s;
+  }
+
+  function insertBlocksAtEnd(list) {
+    for (const b of list) {
+      editor.blocks.insert(b.type, b.data, {}, editor.blocks.getBlocksCount(), false);
+    }
+    markDirty();
+  }
+
+  function currentTitle() {
+    return $('titleInput').value.trim() || '未命名';
+  }
+
+  function showIntg() {
+    hideVersions();
+    hideAi();
+    hideShare();
+    const panel = $('intgPanel');
+    panel.classList.remove('hidden');
+    panel.innerHTML = '';
+    const card = document.createElement('div');
+    card.className = 'vcard';
+    const head = document.createElement('div');
+    head.className = 'vhead';
+    const headText = document.createElement('span');
+    headText.textContent = 'Google 服務整合';
+    const close = document.createElement('button');
+    close.textContent = '✕';
+    close.onclick = hideIntg;
+    head.append(headText, close);
+    card.appendChild(head);
+    panel.appendChild(card);
+
+    const gMail = intgGroup(card, 'Gmail — 把此頁寄出(純文字)');
+    const mailRow = document.createElement('div');
+    mailRow.className = 'aiRow';
+    const mailTo = document.createElement('input');
+    mailTo.className = 'aiInput';
+    mailTo.placeholder = '收件者 email,留空寄給自己';
+    const mailNote = intgNote(gMail);
+    mailRow.append(mailTo, intgBtn('寄出', async () => {
+      mailNote.textContent = '寄送中…';
+      try {
+        const md = await pageAsMarkdown();
+        const res = await run('api_emailPage', mailTo.value.trim(), currentTitle(), md);
+        mailNote.textContent = '已寄給 ' + res.to;
+      } catch (e) { mailNote.textContent = '寄送失敗:' + (e.message || e); }
+    }));
+    gMail.insertBefore(mailRow, mailNote);
+
+    const gCal = intgGroup(card, '日曆 — 今日行程');
+    const calNote = intgNote(gCal);
+    gCal.insertBefore(intgBtn('插入今日行程到頁尾', async () => {
+      calNote.textContent = '讀取中…';
+      try {
+        const res = await run('api_todayEvents');
+        const blocks = [{ type: 'header', data: { text: '今日行程 ' + res.date, level: 3 } }];
+        if (!res.events.length) blocks.push({ type: 'paragraph', data: { text: '(今天沒有行程)' } });
+        else blocks.push({ type: 'checklist', data: { items: res.events.map((ev) => ({ text: escapeHtml(ev.time + ' ' + ev.title), checked: false })) } });
+        insertBlocksAtEnd(blocks);
+        calNote.textContent = '已插入 ' + res.events.length + ' 筆行程';
+      } catch (e) { calNote.textContent = '讀取失敗:' + (e.message || e); }
+    }), calNote);
+
+    const gTasks = intgGroup(card, 'Google Tasks — 待辦');
+    const tasksRow = document.createElement('div');
+    tasksRow.className = 'aiRow';
+    const tasksNote = intgNote(gTasks);
+    tasksRow.append(
+      intgBtn('插入 Tasks 待辦到頁尾', async () => {
+        tasksNote.textContent = '讀取中…';
+        try {
+          const res = await run('api_listTasks');
+          if (!res.tasks.length) { tasksNote.textContent = 'Tasks 清單是空的'; return; }
+          insertBlocksAtEnd([
+            { type: 'header', data: { text: 'Google Tasks:' + escapeHtml(res.listName), level: 3 } },
+            { type: 'checklist', data: { items: res.tasks.map((t) => ({ text: escapeHtml(t.text), checked: t.checked })) } }
+          ]);
+          tasksNote.textContent = '已插入 ' + res.tasks.length + ' 項';
+        } catch (e) { tasksNote.textContent = '讀取失敗:' + (e.message || e); }
+      }),
+      intgBtn('把此頁未完成待辦送到 Tasks', async () => {
+        tasksNote.textContent = '整理中…';
+        try {
+          const data = await editor.save();
+          const titles = [];
+          for (const b of (data.blocks || [])) {
+            if (b.type !== 'checklist') continue;
+            for (const it of (b.data.items || [])) {
+              if (!it.checked && it.text) titles.push(String(it.text).replace(/<[^>]+>/g, ''));
+            }
+          }
+          if (!titles.length) { tasksNote.textContent = '這一頁沒有未完成的待辦'; return; }
+          const res = await run('api_pushTasks', titles);
+          tasksNote.textContent = '已送 ' + res.count + ' 項到「' + res.listName + '」';
+        } catch (e) { tasksNote.textContent = '送出失敗:' + (e.message || e); }
+      })
+    );
+    gTasks.insertBefore(tasksRow, tasksNote);
+
+    const gTr = intgGroup(card, '翻譯 — 用 Gemini 翻譯此頁');
+    const trRow = document.createElement('div');
+    trRow.className = 'aiRow';
+    const trSel = document.createElement('select');
+    trSel.className = 'aiInput';
+    [['英文', 'English'], ['日文', '日本語'], ['正體中文', '台灣慣用的正體中文']].forEach(([label, v]) => {
+      const o = document.createElement('option');
+      o.value = v;
+      o.textContent = '翻成' + label;
+      trSel.appendChild(o);
+    });
+    const trResult = document.createElement('div');
+    trResult.className = 'aiResult hidden';
+    trRow.append(trSel, intgBtn('翻譯', async () => {
+      trResult.classList.remove('hidden');
+      trResult.textContent = '翻譯中…';
+      try {
+        const md = await pageAsMarkdown();
+        const res = await run('api_gemini', '請把以下筆記翻譯成' + trSel.value + ',保留 Markdown 結構,只輸出譯文:\n\n' + md);
+        trResult.textContent = '';
+        const text = document.createElement('div');
+        text.textContent = res.text;
+        const r = document.createElement('div');
+        r.className = 'aiRow';
+        r.append(intgBtn('插入頁面末尾', () => {
+          insertBlocksAtEnd(res.text.split('\n').filter((l) => l.trim()).map((l) => ({ type: 'paragraph', data: { text: escapeHtml(l) } })));
+        }));
+        trResult.append(text, r);
+      } catch (e) { trResult.textContent = '翻譯失敗:' + (e.message || e); }
+    }));
+    gTr.append(trRow, trResult);
+
+    const gExp = intgGroup(card, '匯出 — 轉成 Google 文件/簡報(存到你的雲端硬碟)');
+    const expNote = intgNote(gExp);
+    const expRow = document.createElement('div');
+    expRow.className = 'aiRow';
+    const exportTo = async (fn, label) => {
+      expNote.textContent = label + '中…';
+      try {
+        const md = await pageAsMarkdown();
+        const res = await run(fn, currentTitle(), md);
+        expNote.innerHTML = '';
+        const a = document.createElement('a');
+        a.href = res.url;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.textContent = label + '完成,點此開啟';
+        expNote.appendChild(a);
+      } catch (e) { expNote.textContent = label + '失敗:' + (e.message || e); }
+    };
+    expRow.append(
+      intgBtn('匯出 Google 文件', () => exportTo('api_exportDoc', '匯出文件')),
+      intgBtn('匯出 Google 簡報', () => exportTo('api_exportSlides', '匯出簡報'))
+    );
+    gExp.insertBefore(expRow, expNote);
+
+    const gCr = intgGroup(card, 'Classroom — 公告此頁(學校帳號適用,個人帳號通常沒有課程)');
+    const crNote = intgNote(gCr);
+    const crRow = document.createElement('div');
+    crRow.className = 'aiRow';
+    const crSel = document.createElement('select');
+    crSel.className = 'aiInput';
+    crRow.append(
+      intgBtn('載入課程', async () => {
+        crNote.textContent = '讀取課程中…';
+        try {
+          const res = await run('api_listCourses');
+          crSel.innerHTML = '';
+          for (const c of res.courses) {
+            const o = document.createElement('option');
+            o.value = c.id;
+            o.textContent = c.name;
+            crSel.appendChild(o);
+          }
+          crNote.textContent = res.courses.length ? '找到 ' + res.courses.length + ' 門課程' : '沒有進行中的課程';
+        } catch (e) { crNote.textContent = String(e.message || e); }
+      }),
+      crSel,
+      intgBtn('公告此頁內容', async () => {
+        if (!crSel.value) { crNote.textContent = '請先載入並選擇課程'; return; }
+        crNote.textContent = '公告中…';
+        try {
+          const md = await pageAsMarkdown();
+          await run('api_announceToCourse', crSel.value, md.slice(0, 3000));
+          crNote.textContent = '已公告到課程';
+        } catch (e) { crNote.textContent = '公告失敗:' + (e.message || e); }
+      })
+    );
+    gCr.insertBefore(crRow, crNote);
+
+    const gDaily = intgGroup(card, '每日自動頁 — 每天自動建立含行程的今日筆記(放在「每日筆記」底下)');
+    const dailyNote = intgNote(gDaily);
+    const dRow = document.createElement('div');
+    dRow.className = 'aiRow';
+    const hourSel = document.createElement('select');
+    hourSel.className = 'aiInput';
+    for (let h = 0; h < 24; h++) {
+      const o = document.createElement('option');
+      o.value = h;
+      o.textContent = ('0' + h).slice(-2) + ':00 左右';
+      hourSel.appendChild(o);
+    }
+    hourSel.value = '6';
+    dRow.append(
+      hourSel,
+      intgBtn('啟用', async () => {
+        try {
+          const r = await run('api_setDaily', true, Number(hourSel.value));
+          dailyNote.textContent = '已啟用,每天 ' + r.hour + ' 點左右自動建立';
+        } catch (e) { dailyNote.textContent = '啟用失敗:' + (e.message || e); }
+      }),
+      intgBtn('停用', async () => {
+        try {
+          await run('api_setDaily', false, 0);
+          dailyNote.textContent = '已停用';
+        } catch (e) { dailyNote.textContent = '停用失敗:' + (e.message || e); }
+      }),
+      intgBtn('立刻建今日頁', async () => {
+        dailyNote.textContent = '建立中…';
+        try {
+          const r = await run('api_runDailyNow');
+          await reloadIndex();
+          dailyNote.textContent = r.created ? '已建立,看左側「每日筆記」' : '今天那頁已經存在了';
+        } catch (e) { dailyNote.textContent = '失敗:' + (e.message || e); }
+      })
+    );
+    gDaily.insertBefore(dRow, dailyNote);
+    run('api_dailyStatus').then((s) => {
+      if (s.enabled) { hourSel.value = String(s.hour); dailyNote.textContent = '目前已啟用,每天 ' + s.hour + ' 點左右'; }
+      else dailyNote.textContent = '目前未啟用';
+    }).catch(() => {});
+
+    const gBk = intgGroup(card, '自動備份 — 每週一清晨自動打包全部頁面到 Drive「GAS Notion 備份」(保留 8 份)');
+    const bkNote = intgNote(gBk);
+    const bkRow = document.createElement('div');
+    bkRow.className = 'aiRow';
+    bkRow.append(
+      intgBtn('啟用每週自動備份', async () => {
+        try {
+          await run('api_setAutoBackup', true);
+          bkNote.textContent = '已啟用,每週一 05:00 左右自動備份';
+        } catch (e) { bkNote.textContent = '啟用失敗:' + (e.message || e); }
+      }),
+      intgBtn('停用', async () => {
+        try {
+          await run('api_setAutoBackup', false);
+          bkNote.textContent = '已停用';
+        } catch (e) { bkNote.textContent = '停用失敗:' + (e.message || e); }
+      }),
+      intgBtn('立刻備份一次', async () => {
+        bkNote.textContent = '備份中…';
+        try {
+          const r = await run('api_runBackupNow');
+          bkNote.innerHTML = '';
+          const a = document.createElement('a');
+          a.href = r.url;
+          a.target = '_blank';
+          a.rel = 'noopener';
+          a.textContent = '完成:' + r.name + '(' + r.pages + ' 頁),點此開啟';
+          bkNote.appendChild(a);
+        } catch (e) { bkNote.textContent = '備份失敗:' + (e.message || e); }
+      })
+    );
+    gBk.insertBefore(bkRow, bkNote);
+    run('api_autoBackupStatus').then((s) => {
+      bkNote.textContent = s.enabled ? '目前已啟用,每週一 05:00 左右' : '目前未啟用';
+    }).catch(() => {});
+
+    const keepNote = intgNote(intgGroup(card, 'Google Keep'));
+    keepNote.textContent = 'Keep 沒有開放 API 給 Apps Script,無法整合;替代做法是把 Keep 內容匯出後用「匯入 MD」搬進來。';
+  }
+
+  // ---- 公開分享 ----
+  function toggleShare() {
+    const panel = $('sharePanel');
+    if (panel.classList.contains('hidden')) showShare();
+    else hideShare();
+  }
+
+  function hideShare() {
+    $('sharePanel').classList.add('hidden');
+    $('sharePanel').innerHTML = '';
+  }
+
+  async function showShare() {
+    if (!currentId || isTmp(currentId)) return;
+    hideVersions();
+    hideAi();
+    hideIntg();
+    const panel = $('sharePanel');
+    panel.classList.remove('hidden');
+    panel.innerHTML = '<div class="vcard">讀取分享狀態…</div>';
+    const render = (status) => {
+      const card = document.createElement('div');
+      card.className = 'vcard';
+      const head = document.createElement('div');
+      head.className = 'vhead';
+      const headText = document.createElement('span');
+      headText.textContent = '公開分享此頁';
+      const close = document.createElement('button');
+      close.textContent = '✕';
+      close.onclick = hideShare;
+      head.append(headText, close);
+      card.appendChild(head);
+      if (!status.available) {
+        const p = document.createElement('div');
+        p.textContent = '分享功能尚未設定(缺少公開部署),見交接文件。';
+        card.appendChild(p);
+      } else if (status.shared) {
+        const row = document.createElement('div');
+        row.className = 'aiRow';
+        const urlBox = document.createElement('input');
+        urlBox.className = 'aiInput';
+        urlBox.readOnly = true;
+        urlBox.value = status.url;
+        urlBox.onclick = () => urlBox.select();
+        const copy = document.createElement('button');
+        copy.className = 'btn';
+        copy.textContent = '複製連結';
+        copy.onclick = async () => {
+          try { await navigator.clipboard.writeText(status.url); } catch (e) { urlBox.select(); document.execCommand('copy'); }
+          setStatus('已複製分享連結');
+        };
+        const stop = document.createElement('button');
+        stop.className = 'btn';
+        stop.textContent = '取消分享';
+        stop.onclick = async () => {
+          if (!confirm('取消分享?現有連結會立刻失效。')) return;
+          try {
+            await run('api_unsharePage', currentId);
+            setStatus('已取消分享');
+            showShare();
+          } catch (e) { setStatus('取消失敗:' + (e.message || e), 'err'); }
+        };
+        const scopeBtn = document.createElement('button');
+        scopeBtn.className = 'btn';
+        scopeBtn.textContent = status.scope === 'tree' ? '改為僅此頁' : '改為含子頁面';
+        scopeBtn.onclick = async () => {
+          try {
+            await run('api_setShareScope', currentId, status.scope === 'tree' ? 'page' : 'tree');
+            showShare();
+          } catch (e) { setStatus('切換失敗:' + (e.message || e), 'err'); }
+        };
+        row.append(urlBox, copy, scopeBtn, stop);
+        card.appendChild(row);
+        const note = document.createElement('div');
+        note.className = 'aiNote';
+        note.textContent = (status.scope === 'tree'
+          ? '目前範圍:此頁+全部子頁面,分享頁左側會有目錄。'
+          : '目前範圍:僅此頁。')
+          + '任何拿到連結的人都能閱讀(唯讀、不用登入),內容永遠是最新版,連結無法被猜到。';
+        card.appendChild(note);
+      } else {
+        const row = document.createElement('div');
+        row.className = 'aiRow';
+        const mk = (label, scope) => {
+          const b = document.createElement('button');
+          b.className = 'btn';
+          b.textContent = label;
+          b.onclick = async () => {
+            b.textContent = '建立中…';
+            try {
+              await run('api_sharePage', currentId, scope);
+              showShare();
+            } catch (e) {
+              b.textContent = label;
+              setStatus('分享失敗:' + (e.message || e), 'err');
+            }
+          };
+          return b;
+        };
+        row.append(mk('分享此頁', 'page'), mk('分享此頁+子頁面', 'tree'));
+        card.appendChild(row);
+        const note = document.createElement('div');
+        note.className = 'aiNote';
+        note.textContent = '會產生一個公開唯讀網頁,拿到連結的人不用登入就能看。「含子頁面」版左側會有目錄可切換頁面。可隨時取消或切換範圍。';
+        card.appendChild(note);
+      }
+      panel.innerHTML = '';
+      panel.appendChild(card);
+    };
+    try {
+      render(await run('api_shareStatus', currentId));
+    } catch (e) {
+      panel.innerHTML = '<div class="vcard">讀取失敗:' + escapeHtml(e.message || e) + '</div>';
+    }
+  }
+
+  // ---- 側欄開關(手機=抽屜,桌機=收合) ----
+  function toggleNav() {
+    if (window.innerWidth <= 768) document.documentElement.classList.toggle('nav-open');
+    else document.documentElement.classList.toggle('side-hide');
+  }
+
+  // ---- [[頁面連結]]:在編輯區打「[[」跳出頁面選單,插入內部連結 ----
+  const plink = { open: false, node: null, offset: 0, sel: 0, items: [] };
+  const plinkEl = $('plinkPicker');
+  const plinkInput = plinkEl.querySelector('input');
+  const plinkList = $('plinkList');
+
+  function plinkClose() {
+    plink.open = false;
+    plinkEl.classList.add('hidden');
+  }
+
+  function plinkUpdateSel() {
+    Array.from(plinkList.children).forEach((el, i) => el.classList.toggle('sel', i === plink.sel));
+  }
+
+  function plinkRender() {
+    const q = plinkInput.value.trim().toLowerCase();
+    plink.items = Array.from(pages.values())
+      .filter((p) => !p.pending && p.id !== currentId && p.kind !== 'folder' && (!q || (p.title || '未命名').toLowerCase().includes(q)))
+      .sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')))
+      .slice(0, 8);
+    plink.sel = 0;
+    plinkList.innerHTML = '';
+    if (!plink.items.length) {
+      const d = document.createElement('div');
+      d.className = 'plinkItem';
+      d.textContent = '找不到頁面';
+      plinkList.appendChild(d);
+      return;
+    }
+    plink.items.forEach((p, i) => {
+      const d = document.createElement('div');
+      d.className = 'plinkItem' + (i === plink.sel ? ' sel' : '');
+      d.textContent = p.title || '未命名';
+      d.onmousedown = (e) => { e.preventDefault(); plinkPick(i); };
+      plinkList.appendChild(d);
+    });
+  }
+
+  function plinkPick(i) {
+    const p = plink.items[i];
+    if (!p) { plinkClose(); return; }
+    const node = plink.node;
+    try {
+      node.deleteData(plink.offset - 2, 2);
+      const range = document.createRange();
+      range.setStart(node, plink.offset - 2);
+      range.collapse(true);
+      const a = document.createElement('a');
+      a.href = '#page=' + p.id;
+      a.textContent = p.title || '未命名';
+      const space = document.createTextNode(' ');
+      range.insertNode(space);
+      range.insertNode(a);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      const after = document.createRange();
+      after.setStartAfter(space);
+      after.collapse(true);
+      sel.addRange(after);
+    } catch (e) { /* 文字節點已變動就放棄插入 */ }
+    plinkClose();
+    markDirty();
+  }
+
+  $('editor').addEventListener('input', () => {
+    const sel = window.getSelection();
+    if (!sel.rangeCount || !sel.isCollapsed) return;
+    const node = sel.anchorNode;
+    if (!node || node.nodeType !== 3) return;
+    const off = sel.anchorOffset;
+    if (off < 2 || node.textContent.slice(off - 2, off) !== '[[') return;
+    if (node.parentElement && node.parentElement.closest('.tc-cell, .ce-code, .cdx-input')) return;
+    const rect = sel.getRangeAt(0).getBoundingClientRect();
+    plink.open = true;
+    plink.node = node;
+    plink.offset = off;
+    plinkEl.style.left = Math.max(8, Math.min(rect.left, window.innerWidth - 280)) + 'px';
+    plinkEl.style.top = Math.min(rect.bottom + 6, window.innerHeight - 320) + 'px';
+    plinkEl.classList.remove('hidden');
+    plinkInput.value = '';
+    plinkRender();
+    setTimeout(() => plinkInput.focus(), 0);
+  });
+
+  plinkInput.addEventListener('input', plinkRender);
+  plinkInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { e.preventDefault(); plinkClose(); }
+    else if (e.key === 'Enter') { e.preventDefault(); plinkPick(plink.sel); }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); plink.sel = Math.min(plink.sel + 1, plink.items.length - 1); plinkUpdateSel(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); plink.sel = Math.max(plink.sel - 1, 0); plinkUpdateSel(); }
+  });
+
+  document.addEventListener('mousedown', (e) => {
+    if (plink.open && !plinkEl.contains(e.target)) plinkClose();
+  });
+
+  $('editor').addEventListener('click', (e) => {
+    const a = e.target.closest ? e.target.closest('a[href^="#page="]') : null;
+    if (!a) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const id = a.getAttribute('href').slice(6);
+    if (pages.has(id)) openPage(id);
+    else setStatus('連結目標不存在(可能已刪除或在回收桶)', 'err');
+  });
+
+  $('titleInput').addEventListener('input', () => {
+    const p = pages.get(currentId);
+    if (p) p.title = $('titleInput').value.trim();
+    const active = document.querySelector('.row.active .label');
+    if (active) active.textContent = $('titleInput').value.trim() || '未命名';
+    markDirty();
+  });
+
+  window.addEventListener('beforeunload', (e) => {
+    if (dirty) { e.preventDefault(); e.returnValue = ''; }
+  });
+
+  (async function init() {
+    try {
+      const res = await run('api_init');
+      hasGeminiKey = !!res.hasGeminiKey;
+      if (res.geminiModel) geminiModel = res.geminiModel;
+      customTemplates = res.templates || [];
+      res.pages.forEach((p) => pages.set(p.id, p));
+      renderTree();
+      const last = localStorage.getItem('gnLastPage');
+      const roots = childrenOf('').filter((p) => p.kind !== 'folder');
+      const first = (pages.has(last) && pages.get(last).kind !== 'folder') ? last : (roots.length ? roots[0].id : null);
+      if (first) await openPage(first); else showEmpty();
+    } catch (e) {
+      setStatus('初始化失敗:' + (e.message || e), 'err');
+    }
+  })();
+</script>
+</body>
+</html>
