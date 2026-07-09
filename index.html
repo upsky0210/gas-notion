@@ -16,6 +16,12 @@
   }
   .row, .btn, .sres, .drive-item, .plinkItem, #sidebarFoot button, .tog { transition: background .12s ease; }
   a[href^="#page="] { color: var(--text); background: var(--hover); border-radius: 3px; padding: 0 3px; text-decoration: none; border-bottom: 1px dashed var(--muted); cursor: pointer; }
+  #editor a[href^="http"] { color: #4a90d9; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; overflow-wrap: anywhere; }
+  .style-tool-actions { display: flex; flex-direction: column; gap: 4px; padding: 6px; }
+  .style-tool-actions .st-row { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+  .st-swatch { width: 20px; height: 20px; border-radius: 4px; border: 1px solid rgba(0,0,0,.15); cursor: pointer; padding: 0; }
+  .st-clear, .st-size { border: 1px solid var(--border2); background: var(--btnbg); color: var(--text); border-radius: 4px; font-size: 12px; padding: 2px 8px; cursor: pointer; }
+  .st-clear:hover, .st-size:hover { background: var(--hover); }
   #plinkPicker { position: fixed; z-index: 40; background: var(--card); border: 1px solid var(--border2); border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,.12); padding: 6px; width: 260px; }
   #plinkPicker input { width: 100%; padding: 6px 8px; border: 1px solid var(--border2); border-radius: 4px; font: inherit; font-size: 13px; background: var(--btnbg); color: var(--text); outline: none; margin-bottom: 4px; }
   .plinkItem { padding: 5px 8px; border-radius: 4px; cursor: pointer; font-size: 14px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
@@ -745,6 +751,100 @@
     }
   };
 
+  // 行內工具:文字顏色 + 字級(選字後在工具列點 🎨)
+  class StyleTool {
+    static get isInline() { return true; }
+    static get title() { return '文字樣式'; }
+    static get sanitize() { return { span: { style: true } }; }
+
+    constructor({ api }) {
+      this.api = api;
+      this.button = null;
+      this.actions = null;
+      this.range = null;
+      this.colors = ['#e03131', '#e8590c', '#f08c00', '#2f9e44', '#1971c2', '#6741d9', '#37352f', '#a09f9b'];
+      this.sizes = [['小', '13px'], ['中', '16px'], ['大', '20px'], ['特大', '26px']];
+    }
+
+    render() {
+      this.button = document.createElement('button');
+      this.button.type = 'button';
+      this.button.classList.add('ce-inline-tool');
+      this.button.innerHTML = '🎨';
+      return this.button;
+    }
+
+    // Editor.js 在使用者點按鈕時呼叫,帶入當前選取範圍;沿用 LinkTool 模式切換 actions
+    surround(range) {
+      if (!this.actions) return;
+      if (range) this.range = range;
+      this.actions.hidden = !this.actions.hidden;
+    }
+
+    renderActions() {
+      this.actions = document.createElement('div');
+      this.actions.className = 'style-tool-actions';
+      this.actions.hidden = true;
+      const crow = document.createElement('div');
+      crow.className = 'st-row';
+      this.colors.forEach((c) => {
+        const sw = document.createElement('button');
+        sw.type = 'button';
+        sw.className = 'st-swatch';
+        sw.style.background = c;
+        sw.addEventListener('mousedown', (e) => { e.preventDefault(); this.wrap('color', c); });
+        crow.appendChild(sw);
+      });
+      const clr = document.createElement('button');
+      clr.type = 'button';
+      clr.className = 'st-clear';
+      clr.textContent = '清除';
+      clr.addEventListener('mousedown', (e) => { e.preventDefault(); this.clearStyle(); });
+      crow.appendChild(clr);
+      const srow = document.createElement('div');
+      srow.className = 'st-row';
+      this.sizes.forEach((pair) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'st-size';
+        b.textContent = pair[0];
+        b.addEventListener('mousedown', (e) => { e.preventDefault(); this.wrap('fontSize', pair[1]); });
+        srow.appendChild(b);
+      });
+      this.actions.append(crow, srow);
+      return this.actions;
+    }
+
+    wrap(prop, value) {
+      const range = this.range;
+      if (!range || range.collapsed) { this.close(); return; }
+      const span = document.createElement('span');
+      span.style[prop] = value;
+      try {
+        span.appendChild(range.extractContents());
+        range.insertNode(span);
+      } catch (e) { /* 跨節點包不起來就放棄 */ }
+      this.close();
+    }
+
+    clearStyle() {
+      const range = this.range;
+      if (!range || range.collapsed) { this.close(); return; }
+      const text = range.toString();
+      range.deleteContents();
+      range.insertNode(document.createTextNode(text));
+      this.close();
+    }
+
+    close() {
+      if (this.actions) this.actions.hidden = true;
+      try { this.api.inlineToolbar.close(); } catch (e) { /* 忽略 */ }
+      markDirty();
+    }
+
+    checkState() { return false; }
+  }
+
   async function mountEditor(data) {
     lastSelRange = null;
     if (editor) {
@@ -785,7 +885,8 @@
           }
         },
         driveFile: DriveFileTool,
-        youtube: YouTubeTool
+        youtube: YouTubeTool,
+        style: { class: StyleTool }
       },
       onChange: markDirty
     });
@@ -2650,14 +2751,61 @@
   });
 
   $('editor').addEventListener('click', (e) => {
-    const a = e.target.closest ? e.target.closest('a[href^="#page="]') : null;
+    const a = e.target.closest ? e.target.closest('a[href]') : null;
     if (!a) return;
+    const href = a.getAttribute('href') || '';
+    if (href.indexOf('#page=') === 0) {
+      e.preventDefault();
+      e.stopPropagation();
+      const id = href.slice(6);
+      if (pages.has(id)) openPage(id);
+      else setStatus('連結目標不存在(可能已刪除或在回收桶)', 'err');
+    } else if (/^https?:\/\//i.test(href)) {
+      e.preventDefault();
+      e.stopPropagation();
+      window.open(href, '_blank', 'noopener');
+    }
+  });
+
+  function cleanUrl(u) {
+    try {
+      const url = new URL(u);
+      const drop = ['fbclid', 'gclid', 'msclkid', 'mc_cid', 'mc_eid', 'igshid', '_hsenc', '_hsmi', 'ref_src'];
+      Array.from(url.searchParams.keys()).forEach((k) => {
+        if (drop.indexOf(k.toLowerCase()) >= 0 || /^utm_/i.test(k)) url.searchParams.delete(k);
+      });
+      return url.toString();
+    } catch (e) { return u; }
+  }
+
+  // 貼上單一網址 → 自動變成可點連結,並清掉常見追蹤參數(fbclid/utm_ 等)
+  $('editor').addEventListener('paste', (e) => {
+    const cd = e.clipboardData || window.clipboardData;
+    if (!cd) return;
+    const raw = (cd.getData('text') || '').trim();
+    if (!/^https?:\/\/\S+$/i.test(raw) || /\s/.test(raw)) return;
+    const sel = window.getSelection();
+    if (!sel || !sel.rangeCount) return;
+    const host = sel.anchorNode && (sel.anchorNode.nodeType === 3 ? sel.anchorNode.parentElement : sel.anchorNode);
+    if (host && host.closest && host.closest('.ce-code, .tc-cell, .cdx-input, a')) return;
     e.preventDefault();
     e.stopPropagation();
-    const id = a.getAttribute('href').slice(6);
-    if (pages.has(id)) openPage(id);
-    else setStatus('連結目標不存在(可能已刪除或在回收桶)', 'err');
-  });
+    const clean = cleanUrl(raw);
+    const a = document.createElement('a');
+    a.href = clean;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.textContent = clean;
+    const range = sel.getRangeAt(0);
+    range.deleteContents();
+    range.insertNode(a);
+    const after = document.createRange();
+    after.setStartAfter(a);
+    after.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(after);
+    markDirty();
+  }, true);
 
   $('titleInput').addEventListener('input', () => {
     const p = pages.get(currentId);
