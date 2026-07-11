@@ -19,9 +19,11 @@
   #editor a[href^="http"] { color: #4a90d9; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; overflow-wrap: anywhere; }
   .style-tool-actions { display: flex; flex-direction: column; gap: 4px; padding: 6px; }
   .style-tool-actions .st-row { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
-  .st-swatch { width: 20px; height: 20px; border-radius: 4px; border: 1px solid rgba(0,0,0,.15); cursor: pointer; padding: 0; }
+  .st-swatch { width: 20px; height: 20px; border-radius: 4px; border: 1px solid var(--border2); cursor: pointer; padding: 0; }
   .st-clear, .st-size { border: 1px solid var(--border2); background: var(--btnbg); color: var(--text); border-radius: 4px; font-size: 12px; padding: 2px 8px; cursor: pointer; }
   .st-clear:hover, .st-size:hover { background: var(--hover); }
+  #stylePanel { position: fixed; z-index: 40; background: var(--card); border: 1px solid var(--border2); border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,.12); display: none; }
+  #stylePanel.open { display: flex; }
   #plinkPicker { position: fixed; z-index: 40; background: var(--card); border: 1px solid var(--border2); border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,.12); padding: 6px; width: 260px; }
   #plinkPicker input { width: 100%; padding: 6px 8px; border: 1px solid var(--border2); border-radius: 4px; font: inherit; font-size: 13px; background: var(--btnbg); color: var(--text); outline: none; margin-bottom: 4px; }
   .plinkItem { padding: 5px 8px; border-radius: 4px; cursor: pointer; font-size: 14px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
@@ -105,6 +107,9 @@
   .drive-item .fold { color: var(--muted2); }
   .ytwrap { position: relative; padding-top: 56.25%; }
   .ytwrap iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; border-radius: 6px; }
+  .mapwrap { position: relative; padding-top: 60%; }
+  .mapwrap iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; border-radius: 6px; }
+  .mapcap { font-size: 13px; color: var(--muted2); margin-top: 4px; }
   #tplBar { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin: 4px 0 12px; }
   #sidebarFoot { display: flex; flex-wrap: wrap; padding: 4px; border-top: 1px solid var(--border); }
   #sidebarFoot button { border: none; border-radius: 4px; background: none; color: var(--muted2); font-size: 13px; cursor: pointer; padding: 6px 8px; }
@@ -210,6 +215,7 @@
       <div id="actions" class="hidden">
         <button class="btn" onclick="exportMd()">匯出 MD</button>
         <button class="btn" id="composeBtn" title="選取數個段落後按此,拆成新子頁,原地留下連結">拆分</button>
+        <button class="btn" id="styleBtn" title="選取文字或跨段選取後,設定文字顏色/字級">🎨</button>
         <button class="btn" onclick="showVersions()">版本</button>
         <button class="btn" onclick="toggleAi()">AI</button>
         <button class="btn" onclick="toggleIntg()">整合</button>
@@ -515,6 +521,67 @@
     validate(d) { return !!(d && d.videoId); }
   }
 
+  // ---- 自訂區塊:Google 地圖(規劃旅程用,keyless embed,不需 API key) ----
+  class MapTool {
+    static get toolbox() {
+      return {
+        title: '地圖',
+        icon: '<svg width="17" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 20l-6 2V6l6-2 6 2 6-2v16l-6 2-6-2z"/><path d="M9 4v16M15 6v16"/></svg>'
+      };
+    }
+    constructor({ data }) {
+      this.data = data || {};
+      this.wrap = null;
+    }
+    static buildSrc(q) {
+      return 'https://www.google.com/maps?q=' + encodeURIComponent(q) + '&output=embed';
+    }
+    render() {
+      this.wrap = document.createElement('div');
+      if (this.data.query) this.renderMap();
+      else this.renderInput();
+      return this.wrap;
+    }
+    renderMap() {
+      this.wrap.innerHTML = '';
+      const box = document.createElement('div');
+      box.className = 'mapwrap';
+      const f = document.createElement('iframe');
+      f.src = MapTool.buildSrc(this.data.query);
+      f.loading = 'lazy';
+      f.allowFullscreen = true;
+      f.referrerPolicy = 'no-referrer-when-downgrade';
+      box.appendChild(f);
+      const cap = document.createElement('div');
+      cap.className = 'mapcap';
+      cap.textContent = '📍 ' + this.data.query;
+      this.wrap.appendChild(box);
+      this.wrap.appendChild(cap);
+    }
+    renderInput() {
+      this.wrap.innerHTML = '';
+      const box = document.createElement('div');
+      box.className = 'drive-search';
+      const input = document.createElement('input');
+      input.placeholder = '輸入地點或地址(例:台北101),按 Enter…';
+      input.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        e.stopPropagation();
+        const q = input.value.trim();
+        if (!q) return;
+        this.data = { query: q };
+        this.renderMap();
+        markDirty();
+      });
+      box.appendChild(input);
+      this.wrap.appendChild(box);
+      setTimeout(() => input.focus(), 50);
+    }
+    save() { return this.data; }
+    validate(d) { return !!(d && d.query); }
+  }
+
   // ---- 自訂區塊:瀏覽/搜尋自己的雲端硬碟並插入檔案 ----
   class DriveFileTool {
     static get toolbox() {
@@ -751,6 +818,57 @@
     }
   };
 
+  // ---- 文字顏色/字級:共用核心(行內工具列 🎨 與頂欄 🎨 都走這套) ----
+  const STYLE_COLORS = ['#e03131', '#e8590c', '#f08c00', '#2f9e44', '#1971c2', '#6741d9', '#37352f', '#a09f9b'];
+  const STYLE_SIZES = [['小', '13px'], ['中', '16px'], ['大', '20px'], ['特大', '26px']];
+
+  // 取範圍內每個文字節點的被選片段(跨行/跨段/整塊選取都逐節點處理)
+  function styleablePartsIn(range) {
+    const root = range.commonAncestorContainer;
+    const scope = root.nodeType === 3 ? root.parentNode : root;
+    const walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT, {
+      acceptNode: (n) => {
+        if (!n.nodeValue || !range.intersectsNode(n)) return NodeFilter.FILTER_REJECT;
+        const p = n.parentElement;
+        if (!p || p.tagName === 'TEXTAREA' || p.closest('.ce-code')) return NodeFilter.FILTER_REJECT;
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    });
+    const list = [];
+    let n;
+    while ((n = walker.nextNode())) {
+      let start = 0, end = n.nodeValue.length;
+      if (n === range.startContainer) start = range.startOffset;
+      if (n === range.endContainer) end = range.endOffset;
+      if (end > start) list.push({ node: n, start, end });
+    }
+    return list;
+  }
+
+  function applyStyleToRange(range, prop, value) {
+    styleablePartsIn(range).forEach(({ node, start, end }) => { // 先全收集,再動 DOM
+      let target = node;
+      if (end < target.nodeValue.length) target.splitText(end);
+      if (start > 0) target = target.splitText(start);
+      const span = document.createElement('span');
+      span.style[prop] = value;
+      target.parentNode.insertBefore(span, target);
+      span.appendChild(target);
+    });
+  }
+
+  function clearStyleInRange(range) {
+    const root = range.commonAncestorContainer;
+    const scope = root.nodeType === 3 ? root.parentNode : root;
+    Array.from(scope.querySelectorAll('span[style]'))
+      .filter((s) => range.intersectsNode(s))
+      .forEach((span) => {
+        const parent = span.parentNode; // 只拆帶樣式的 span,保留 b/i/a 等
+        while (span.firstChild) parent.insertBefore(span.firstChild, span);
+        parent.removeChild(span);
+      });
+  }
+
   // 行內工具:文字顏色 + 字級(選字後在工具列點 🎨)
   class StyleTool {
     static get isInline() { return true; }
@@ -761,9 +879,8 @@
       this.api = api;
       this.button = null;
       this.actions = null;
-      this.range = null;
-      this.colors = ['#e03131', '#e8590c', '#f08c00', '#2f9e44', '#1971c2', '#6741d9', '#37352f', '#a09f9b'];
-      this.sizes = [['小', '13px'], ['中', '16px'], ['大', '20px'], ['特大', '26px']];
+      this.colors = STYLE_COLORS;
+      this.sizes = STYLE_SIZES;
     }
 
     render() {
@@ -774,11 +891,9 @@
       return this.button;
     }
 
-    // Editor.js 在使用者點按鈕時呼叫,帶入當前選取範圍;沿用 LinkTool 模式切換 actions
-    surround(range) {
-      if (!this.actions) return;
-      if (range) this.range = range;
-      this.actions.hidden = !this.actions.hidden;
+    // 點 🎨 時 Editor.js 呼叫;只負責展開面板,不再快照 range(舊做法的 range 會失效)
+    surround() {
+      if (this.actions) this.actions.hidden = false;
     }
 
     renderActions() {
@@ -792,7 +907,7 @@
         sw.type = 'button';
         sw.className = 'st-swatch';
         sw.style.background = c;
-        sw.addEventListener('mousedown', (e) => { e.preventDefault(); this.wrap('color', c); });
+        sw.addEventListener('mousedown', (e) => { e.preventDefault(); this.apply('color', c); });
         crow.appendChild(sw);
       });
       const clr = document.createElement('button');
@@ -808,31 +923,24 @@
         b.type = 'button';
         b.className = 'st-size';
         b.textContent = pair[0];
-        b.addEventListener('mousedown', (e) => { e.preventDefault(); this.wrap('fontSize', pair[1]); });
+        b.addEventListener('mousedown', (e) => { e.preventDefault(); this.apply('fontSize', pair[1]); });
         srow.appendChild(b);
       });
       this.actions.append(crow, srow);
       return this.actions;
     }
 
-    wrap(prop, value) {
-      const range = this.range;
-      if (!range || range.collapsed) { this.close(); return; }
-      const span = document.createElement('span');
-      span.style[prop] = value;
-      try {
-        span.appendChild(range.extractContents());
-        range.insertNode(span);
-      } catch (e) { /* 跨節點包不起來就放棄 */ }
+    apply(prop, value) {
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0 || sel.isCollapsed) { this.close(); return; }
+      applyStyleToRange(sel.getRangeAt(0), prop, value);
       this.close();
     }
 
     clearStyle() {
-      const range = this.range;
-      if (!range || range.collapsed) { this.close(); return; }
-      const text = range.toString();
-      range.deleteContents();
-      range.insertNode(document.createTextNode(text));
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0 || sel.isCollapsed) { this.close(); return; }
+      clearStyleInRange(sel.getRangeAt(0));
       this.close();
     }
 
@@ -842,11 +950,13 @@
       markDirty();
     }
 
+    // Editor.js 選取變動時會頻繁呼叫;這裡什麼都別做(碰 actions 會把剛打開的面板關掉)
     checkState() { return false; }
   }
 
   async function mountEditor(data) {
     lastSelRange = null;
+    lastNativeRange = null;
     if (editor) {
       const old = editor;
       editor = null;
@@ -886,6 +996,7 @@
         },
         driveFile: DriveFileTool,
         youtube: YouTubeTool,
+        map: MapTool,
         style: { class: StyleTool }
       },
       onChange: markDirty
@@ -941,6 +1052,7 @@
   // Editor.js 的整塊選取在按鈕 mousedown(capture 階段)就被清掉,按下當下讀不到,
   // 所以在拖曳/鍵盤選取結束當下先「快照」範圍,按鈕再用快照。
   let lastSelRange = null;
+  let lastNativeRange = null; // 原生文字選取快照(頂欄 🎨 跨段上色用)
   function readSelRange() {
     const blockEls = Array.from(document.querySelectorAll('#editor .ce-block'));
     if (!blockEls.length) return null;
@@ -966,12 +1078,99 @@
   (function () {
     const ed = $('editor');
     if (ed) {
-      const cap = () => setTimeout(() => { lastSelRange = readSelRange(); }, 0);
+      const cap = () => setTimeout(() => {
+        lastSelRange = readSelRange();
+        const sel = window.getSelection();
+        lastNativeRange = (sel && sel.rangeCount && !sel.isCollapsed
+          && ed.contains(sel.getRangeAt(0).commonAncestorContainer))
+          ? sel.getRangeAt(0).cloneRange() : null;
+      }, 0);
       ed.addEventListener('mouseup', cap);
       ed.addEventListener('keyup', cap);
     }
     const btn = $('composeBtn');
     if (btn) btn.addEventListener('mousedown', (e) => { e.preventDefault(); composeExtract(); });
+  })();
+
+  // ---- 頂欄 🎨:跨段選取時 Editor.js 行內工具列不會出現,改走快照 + 頂欄面板 ----
+  function styleTargetRange() {
+    // 1) 當下仍有效的原生選取(按鈕 mousedown 有 preventDefault,單段選字通常還在)
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount && !sel.isCollapsed
+      && $('editor').contains(sel.getRangeAt(0).commonAncestorContainer)) return sel.getRangeAt(0);
+    // 2) 原生選取快照(跨段拖選在按下按鈕時已被清掉,靠 mouseup 當下的複本)
+    if (lastNativeRange && !lastNativeRange.collapsed
+      && lastNativeRange.startContainer.isConnected && lastNativeRange.endContainer.isConnected) return lastNativeRange;
+    // 3) 整塊藍底選取的快照(lo..hi 區塊索引)→ 造一個涵蓋整段的範圍
+    const r = lastSelRange;
+    const blockEls = Array.from(document.querySelectorAll('#editor .ce-block'));
+    if (r && r.lo >= 0 && r.hi >= r.lo && r.hi < blockEls.length) {
+      const range = document.createRange();
+      range.setStart(blockEls[r.lo], 0);
+      range.setEnd(blockEls[r.hi], blockEls[r.hi].childNodes.length);
+      return range;
+    }
+    return null;
+  }
+
+  (function () {
+    const sBtn = $('styleBtn');
+    if (!sBtn) return;
+    const panel = document.createElement('div');
+    panel.id = 'stylePanel';
+    panel.className = 'style-tool-actions';
+    const hide = () => panel.classList.remove('open');
+    const act = (fn) => (e) => {
+      e.preventDefault();
+      const range = styleTargetRange();
+      if (!range) { setStatus('請先選取文字或段落', 'err'); hide(); return; }
+      fn(range);
+      hide();
+      markDirty();
+    };
+    const crow = document.createElement('div');
+    crow.className = 'st-row';
+    STYLE_COLORS.forEach((c) => {
+      const sw = document.createElement('button');
+      sw.type = 'button';
+      sw.className = 'st-swatch';
+      sw.style.background = c;
+      sw.addEventListener('mousedown', act((range) => applyStyleToRange(range, 'color', c)));
+      crow.appendChild(sw);
+    });
+    const clr = document.createElement('button');
+    clr.type = 'button';
+    clr.className = 'st-clear';
+    clr.textContent = '清除';
+    clr.addEventListener('mousedown', act(clearStyleInRange));
+    crow.appendChild(clr);
+    const srow = document.createElement('div');
+    srow.className = 'st-row';
+    STYLE_SIZES.forEach((pair) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'st-size';
+      b.textContent = pair[0];
+      b.addEventListener('mousedown', act((range) => applyStyleToRange(range, 'fontSize', pair[1])));
+      srow.appendChild(b);
+    });
+    panel.append(crow, srow);
+    document.body.appendChild(panel);
+    sBtn.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      if (panel.classList.contains('open')) { hide(); return; }
+      const rect = sBtn.getBoundingClientRect();
+      panel.style.top = (rect.bottom + 6) + 'px';
+      panel.style.left = 'auto';
+      panel.style.right = Math.max(8, window.innerWidth - rect.right) + 'px';
+      panel.classList.add('open');
+    });
+    document.addEventListener('mousedown', (e) => {
+      if (!panel.classList.contains('open')) return;
+      if (e.target === sBtn || sBtn.contains(e.target) || panel.contains(e.target)) return;
+      hide();
+    });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hide(); });
   })();
 
   async function composeExtract() {

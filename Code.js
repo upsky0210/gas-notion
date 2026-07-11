@@ -1216,6 +1216,11 @@ function blocksToHtml_(blocks) {
           out.push('<div class="yt"><iframe src="https://www.youtube.com/embed/' + d.videoId + '" allowfullscreen></iframe></div>');
         }
         break;
+      case 'map':
+        if (d.query) {
+          out.push('<div class="yt"><iframe src="https://www.google.com/maps?q=' + encodeURIComponent(d.query) + '&output=embed" allowfullscreen></iframe></div>');
+        }
+        break;
     }
   }
   return out.join('\n');
