@@ -22,6 +22,15 @@ const OUT = join(here, 'index.html');
 const ANCHOR = `<script>
   const run = (fn, ...args) => new Promise((resolve, reject) => {`;
 
+// 正式版的 <title> 與 viewport 是 Code.js 的 doGet() 用 HtmlService 加上去的
+// (.setTitle('SkyNote') / .addMetaTag('viewport', ...)),不在 index.html 裡。
+// 獨立版少了這兩樣,分頁沒有標題、手機也不會套用 device-width,所以在這裡補回來,
+// 讓 demo 跟正式版看起來一致。
+const HEAD_FIX = `
+<title>SkyNote</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+`;
+
 const BADGE = `
 <script src="mock-backend.js"></script>
 <style>
@@ -62,7 +71,13 @@ if (!html.includes('</body>')) {
   process.exit(1);
 }
 
+if (!html.includes('<head>')) {
+  console.error('✗ 在 ../index.html 找不到 <head>。');
+  process.exit(1);
+}
+
 const out = html
+  .replace('<head>', '<head>' + HEAD_FIX)
   .replace(ANCHOR, BADGE + ANCHOR)
   .replace('</body>', BADGE_BODY + '</body>');
 
