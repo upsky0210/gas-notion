@@ -1690,10 +1690,16 @@
       const reader = new FileReader();
       reader.onload = async () => {
         const base64 = String(reader.result).split(',')[1] || '';
-        const prompt = '這是一張課表或行事曆的圖片。請辨識其中的表格資料,只輸出一個 JSON 二維陣列(rows),'
-          + '第一列為表頭(例如:節次、星期一、星期二、星期三、星期四、星期五,或 日期、時間、事項、地點),'
-          + '其後每列為對應內容。每格都用字串;辨識不到內容的格子用空字串。不要輸出任何說明文字或 markdown,'
-          + '只要純 JSON。如果圖片裡看不出課表或行事曆,回傳 []。';
+        const prompt = '這是一張課表或行事曆的圖片。請辨識其中的表格資料,只輸出一個 JSON 二維陣列(rows),第一列為表頭。\n'
+          + '規則:\n'
+          + '1. 台灣紙本課表常是直書、星期由右至左排(表頭寫成「五 四 三 二 一」)。請一律轉成由左至右閱讀:'
+          + '第一欄放時間或節次,接著依序是星期一、星期二、星期三、星期四、星期五。\n'
+          + '2. 只取表格本體。忽略表格外的裝飾文字(學校名稱、直書大標、教師姓名、上午/下午分隔、頁尾的授課班級說明),'
+          + '不要為這些另外開一欄。\n'
+          + '3. 不要新增原圖沒有的欄位;每一列的欄數都要跟表頭一致。\n'
+          + '4. 橫跨整列的項目(例如「午間靜息」「整潔活動」),請在每個星期欄都填入相同文字。\n'
+          + '5. 每格都用字串;沒有內容的格子用空字串。\n'
+          + '只輸出純 JSON,不要任何說明文字或 markdown 圍籬。如果圖片裡看不出課表或行事曆,回傳 []。';
         try {
           const res = await run('api_geminiVision', base64, file.type || 'image/png', prompt);
           const rows = parseGridJson(res.text);
@@ -1702,16 +1708,22 @@
             return;
           }
           const cols = Math.max.apply(null, rows.map((r) => r.length));
-          const norm = rows.map((r) => {
+          let norm = rows.map((r) => {
             const row = (r || []).map((c) => String(c == null ? '' : c));
             while (row.length < cols) row.push('');
             return row;
           });
+          // 砍掉整欄皆空的欄位(辨識時偶爾會把表格外的直書標題誤判成一欄)
+          const keep = [];
+          for (let c = 0; c < cols; c++) {
+            if (norm.some((row) => row[c].trim() !== '')) keep.push(c);
+          }
+          if (keep.length && keep.length < cols) norm = norm.map((row) => keep.map((c) => row[c]));
           const label = '課表匯入 ' + new Date().toLocaleDateString('zh-TW');
           editor.blocks.insert('header', { text: label, level: 2 }, {}, editor.blocks.getBlocksCount(), false);
           editor.blocks.insert('table', { withHeadings: true, content: norm }, {}, editor.blocks.getBlocksCount(), false);
           markDirty();
-          if (result) result.textContent = '已插入課表('+ norm.length + ' 列 × ' + cols + ' 欄)到頁尾,可再手動微調。';
+          if (result) result.textContent = '已插入課表('+ norm.length + ' 列 × ' + norm[0].length + ' 欄)到頁尾,可再手動微調。';
           setStatus('已從圖片匯入課表');
         } catch (e) {
           if (result) result.textContent = '匯入失敗:' + (e.message || e);
