@@ -7,7 +7,7 @@ const MAX_VERSIONS = 10;
 const VERSION_MIN_GAP_MS = 10 * 60 * 1000;
 
 // 公開分享部署(第二個 deployment,匿名唯讀)。id/URL 由部署流程回填,見交接文件。
-const PUBLIC_DEPLOY_ID = 'AKfycbwAUNmjY1TNA-trnACmFlTJO0sqR_VsMOr4ubcxsBD2sdNLbzXhsGUHSQpTKUVjqUe2mw';
+const PUBLIC_DEPLOY_ID = 'AKfycbwkNhS-wLcwVgWHg9yJnAnjqqXfHVWrUi5re1waLuhQUuX0v2X1uKTkvcDYWzAIls-OVA';
 const PUBLIC_EXEC_URL = 'https://script.google.com/macros/s/' + PUBLIC_DEPLOY_ID + '/exec';
 
 function doGet(e) {
