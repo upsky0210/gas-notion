@@ -783,6 +783,55 @@ function api_geminiPing() {
   }
 }
 
+// 多模態:送一張圖片 + 指令給 Gemini(課表/行事曆 OCR 用)。骨架同 api_gemini。
+function api_geminiVision(base64, mimeType, prompt) {
+  const key = getGeminiKey_();
+  if (!key) throw new Error('尚未設定 Gemini API 金鑰(右上「AI」→ 金鑰設定)');
+  if (!base64) throw new Error('沒有收到圖片內容');
+  const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + getGeminiModel_()
+    + ':generateContent?key=' + encodeURIComponent(key);
+  const payload = {
+    contents: [{ parts: [
+      { inline_data: { mime_type: mimeType || 'image/png', data: String(base64) } },
+      { text: String(prompt || '') }
+    ] }],
+    generationConfig: { temperature: 0.2 }
+  };
+  let lastErr = '';
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) Utilities.sleep(1200 * attempt);
+    let res;
+    try {
+      res = UrlFetchApp.fetch(url, {
+        method: 'post',
+        contentType: 'application/json',
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true
+      });
+    } catch (e) {
+      const msg = String((e && e.message) || e);
+      if (/PERMISSION|permission|權限|external_request/i.test(msg)) {
+        throw new Error('缺少「連外網路」授權:請到 script.google.com 開啟此專案,任選一個函式按「執行」,在跳出的視窗完成重新授權後再試一次。');
+      }
+      lastErr = msg;
+      continue;
+    }
+    const code = res.getResponseCode();
+    if (code === 200) {
+      const body = JSON.parse(res.getContentText());
+      const cand = (body.candidates || [])[0];
+      const parts = ((cand || {}).content || {}).parts || [];
+      const text = parts.map((p) => p.text || '').join('');
+      if (!text) throw new Error('Gemini 回了空內容(可能被安全機制擋下,換張清楚一點的圖試試)');
+      return { text: text };
+    }
+    lastErr = 'HTTP ' + code;
+    if (code === 429 || code >= 500) continue;
+    throw new Error('Gemini 錯誤 ' + code + ':' + res.getContentText().slice(0, 300));
+  }
+  throw new Error('Gemini 忙線(' + lastErr + '),已自動重試 3 次仍失敗,請過一分鐘再試');
+}
+
 // ---- Google 服務整合:Email / 日曆 / Tasks / 文件 / 簡報 / Classroom ----
 
 function api_emailPage(to, title, markdown) {

@@ -1621,6 +1621,10 @@
     bCont.className = 'btn';
     bCont.textContent = '接著寫';
     bCont.onclick = () => aiAction('continue');
+    const bImg = document.createElement('button');
+    bImg.className = 'btn';
+    bImg.textContent = '課表匯入(圖片)';
+    bImg.onclick = aiImportSchedule;
     const bModel = document.createElement('button');
     bModel.className = 'btn';
     bModel.textContent = '選擇模型';
@@ -1645,7 +1649,7 @@
         result.textContent = '測試失敗:' + (e.message || e);
       }
     };
-    row.append(bSum, bCont, bPing, bModel, bKey);
+    row.append(bSum, bCont, bImg, bPing, bModel, bKey);
     card.appendChild(row);
     const askRow = document.createElement('div');
     askRow.className = 'aiRow';
@@ -1666,6 +1670,71 @@
     note.className = 'aiNote';
     note.textContent = '目前模型:' + geminiModel + '。使用 Gemini API 免費層:內容會傳給 Google 處理,忙線時會自動重試。';
     card.appendChild(note);
+  }
+
+  // 課表/行事曆 OCR:上傳圖片 → Gemini 抽成二維表 → 插入表格區塊到頁尾
+  function aiImportSchedule() {
+    if (!hasGeminiKey) { showAiKeySetup(); return; }
+    if (!editor || !currentId || isTmp(currentId)) { setStatus('請先開啟一個頁面再匯入', 'err'); return; }
+    const picker = document.createElement('input');
+    picker.type = 'file';
+    picker.accept = 'image/*';
+    picker.style.display = 'none';
+    document.body.appendChild(picker);
+    picker.addEventListener('change', () => {
+      const file = picker.files && picker.files[0];
+      picker.remove();
+      if (!file) return;
+      const result = $('aiResult');
+      if (result) { result.classList.remove('hidden'); result.textContent = '辨識中…(把圖片傳給 Gemini,忙線時會自動重試)'; }
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64 = String(reader.result).split(',')[1] || '';
+        const prompt = '這是一張課表或行事曆的圖片。請辨識其中的表格資料,只輸出一個 JSON 二維陣列(rows),'
+          + '第一列為表頭(例如:節次、星期一、星期二、星期三、星期四、星期五,或 日期、時間、事項、地點),'
+          + '其後每列為對應內容。每格都用字串;辨識不到內容的格子用空字串。不要輸出任何說明文字或 markdown,'
+          + '只要純 JSON。如果圖片裡看不出課表或行事曆,回傳 []。';
+        try {
+          const res = await run('api_geminiVision', base64, file.type || 'image/png', prompt);
+          const rows = parseGridJson(res.text);
+          if (!rows || !rows.length) {
+            if (result) result.textContent = '這張圖看不出課表/行事曆,或辨識為空。請換一張更清楚、表格完整的圖再試。';
+            return;
+          }
+          const cols = Math.max.apply(null, rows.map((r) => r.length));
+          const norm = rows.map((r) => {
+            const row = (r || []).map((c) => String(c == null ? '' : c));
+            while (row.length < cols) row.push('');
+            return row;
+          });
+          const label = '課表匯入 ' + new Date().toLocaleDateString('zh-TW');
+          editor.blocks.insert('header', { text: label, level: 2 }, {}, editor.blocks.getBlocksCount(), false);
+          editor.blocks.insert('table', { withHeadings: true, content: norm }, {}, editor.blocks.getBlocksCount(), false);
+          markDirty();
+          if (result) result.textContent = '已插入課表('+ norm.length + ' 列 × ' + cols + ' 欄)到頁尾,可再手動微調。';
+          setStatus('已從圖片匯入課表');
+        } catch (e) {
+          if (result) result.textContent = '匯入失敗:' + (e.message || e);
+          setStatus('課表匯入失敗:' + (e.message || e), 'err');
+        }
+      };
+      reader.onerror = () => { if (result) result.textContent = '讀取圖片失敗,請換一張再試。'; };
+      reader.readAsDataURL(file);
+    });
+    picker.click();
+  }
+
+  // 從 Gemini 回覆中取出 JSON 二維陣列(容錯:去除 ```json 圍籬、擷取最外層 [ ])
+  function parseGridJson(text) {
+    let s = String(text || '').trim();
+    s = s.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+    const a = s.indexOf('['), b = s.lastIndexOf(']');
+    if (a >= 0 && b > a) s = s.slice(a, b + 1);
+    try {
+      const arr = JSON.parse(s);
+      if (Array.isArray(arr) && arr.every((r) => Array.isArray(r))) return arr;
+    } catch (e) { /* 解析失敗回 null */ }
+    return null;
   }
 
   async function showAiModelPicker() {
@@ -1944,6 +2013,45 @@
         { type: 'table', data: { withHeadings: true, content: [['姓名', '事項', '處理'], ['', '', '']] } },
         { type: 'header', data: { text: '親師聯繫', level: 2 } },
         { type: 'paragraph', data: { text: '' } }
+      ]
+    },
+    teachingLog: {
+      name: '教學日誌',
+      blocks: [
+        { type: 'header', data: { text: '教學日誌', level: 1 } },
+        { type: 'paragraph', data: { text: '日期: | 節次: | 科目/主題:' } },
+        { type: 'header', data: { text: '教學內容', level: 2 } },
+        { type: 'paragraph', data: { text: '' } },
+        { type: 'header', data: { text: '教學反思', level: 2 } },
+        { type: 'paragraph', data: { text: '' } },
+        { type: 'header', data: { text: '後續追蹤', level: 2 } },
+        { type: 'checklist', data: { items: [{ text: '', checked: false }] } }
+      ]
+    },
+    contactBook: {
+      name: '聯絡簿',
+      blocks: [
+        { type: 'header', data: { text: '今日聯絡簿', level: 1 } },
+        { type: 'paragraph', data: { text: '日期: | 星期:' } },
+        { type: 'header', data: { text: '今日作業', level: 2 } },
+        { type: 'checklist', data: { items: [{ text: '', checked: false }] } },
+        { type: 'header', data: { text: '今日提醒', level: 2 } },
+        { type: 'list', data: { style: 'unordered', items: [''] } },
+        { type: 'header', data: { text: '家長簽名', level: 2 } },
+        { type: 'paragraph', data: { text: '' } }
+      ]
+    },
+    morningReminder: {
+      name: '晨間提醒',
+      blocks: [
+        { type: 'header', data: { text: '晨間提醒', level: 1 } },
+        { type: 'paragraph', data: { text: '日期:' } },
+        { type: 'header', data: { text: '今日重點', level: 2 } },
+        { type: 'paragraph', data: { text: '' } },
+        { type: 'header', data: { text: '注意事項', level: 2 } },
+        { type: 'list', data: { style: 'unordered', items: [''] } },
+        { type: 'header', data: { text: '值日生/任務', level: 2 } },
+        { type: 'checklist', data: { items: [{ text: '', checked: false }] } }
       ]
     }
   };
