@@ -183,7 +183,7 @@
 <div id="app">
   <aside id="sidebar">
     <div id="sidebarHead">
-      <span>我的筆記</span>
+      <span>SkyNote</span>
       <select id="themeSel" title="佈景主題">
         <option value="">明亮</option>
         <option value="theme-sepia">米色</option>
@@ -2798,7 +2798,7 @@
       else dailyNote.textContent = '目前未啟用';
     }).catch(() => {});
 
-    const gBk = intgGroup(card, '自動備份 — 每週一清晨自動打包全部頁面到 Drive「GAS Notion 備份」(保留 8 份)');
+    const gBk = intgGroup(card, '自動備份 — 每週一清晨自動打包全部頁面到 Drive「SkyNote 備份」(保留 8 份)');
     const bkNote = intgNote(gBk);
     const bkRow = document.createElement('div');
     bkRow.className = 'aiRow';

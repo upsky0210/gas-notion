@@ -17,7 +17,7 @@ function doGet(e) {
     return shareErr_('這是分享專用網址,請使用完整的分享連結開啟頁面。');
   }
   return HtmlService.createHtmlOutputFromFile('index')
-    .setTitle('我的筆記')
+    .setTitle('SkyNote')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
@@ -46,7 +46,7 @@ function db_() {
       return ss;
     } catch (e) { /* 開不了(換帳號或被刪)就重建 */ }
   }
-  const ss = SpreadsheetApp.create('GAS Notion DB');
+  const ss = SpreadsheetApp.create('SkyNote DB');
   setStoredId_(key, ss.getId());
   return ss;
 }
@@ -87,9 +87,9 @@ function folderOf_(key, name) {
   return f;
 }
 
-function folder_() { return folderOf_('PAGES_FOLDER_ID', 'GAS Notion Pages'); }
-function assetsFolder_() { return folderOf_('ASSETS_FOLDER_ID', 'GAS Notion Assets'); }
-function versionsFolder_() { return folderOf_('VERSIONS_FOLDER_ID', 'GAS Notion Versions'); }
+function folder_() { return folderOf_('PAGES_FOLDER_ID', 'SkyNote Pages'); }
+function assetsFolder_() { return folderOf_('ASSETS_FOLDER_ID', 'SkyNote Assets'); }
+function versionsFolder_() { return folderOf_('VERSIONS_FOLDER_ID', 'SkyNote Versions'); }
 
 function lock_() {
   const lock = LockService.getUserLock();
@@ -1180,14 +1180,14 @@ function renderShare_(token, pParam) {
       + 'ul.ck{list-style:none;padding-left:8px}hr{border:none;border-top:1px solid #e8e7e4;margin:20px 0}'
       + '.yt{position:relative;padding-top:56.25%;margin:12px 0}.yt iframe{position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:6px}'
       + '.foot{margin-top:48px;padding-top:12px;border-top:1px solid #e8e7e4;color:#a09f9b;font-size:12px}</style>'
-      + '<title>' + esc_(target.title || '未命名') + '</title></head><body><div class="wrap">'
+      + '<title>' + esc_(target.title || '未命名') + ' · SkyNote</title></head><body><div class="wrap">'
       + nav
       + '<article><h1>' + esc_(target.title || '未命名') + '</h1>'
       + body
-      + '<div class="foot">此頁為唯讀分享。</div></article>'
+      + '<div class="foot">此頁為唯讀分享 · 由 SkyNote 製作</div></article>'
       + '</div></body></html>';
     return HtmlService.createHtmlOutput(html)
-      .setTitle(target.title || '未命名')
+      .setTitle((target.title || '未命名') + ' · SkyNote')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   } catch (e) {
     return shareErr_('讀取失敗,請稍後再試。');
@@ -1336,8 +1336,8 @@ function dailyPageJob() {
   return true;
 }
 
-// ---- 自動備份(每週時間觸發器,zip 存 Drive「GAS Notion 備份」,保留最近 8 份) ----
-function backupFolder_() { return folderOf_('BACKUP_FOLDER_ID', 'GAS Notion 備份'); }
+// ---- 自動備份(每週時間觸發器,zip 存 Drive「SkyNote 備份」,保留最近 8 份) ----
+function backupFolder_() { return folderOf_('BACKUP_FOLDER_ID', 'SkyNote 備份'); }
 
 function mdInlineSrv_(html) {
   let s = String(html || '');
