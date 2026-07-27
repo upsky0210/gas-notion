@@ -11,3 +11,6 @@ Desktop.ini
 
 # clasp 憑證(實際憑證在家目錄;避免誤放進 repo)
 .clasprc.json
+
+# demo/index.html 由 build.mjs 從 index.html 產生,不進版控避免兩份程式碼漂移
+demo/index.html

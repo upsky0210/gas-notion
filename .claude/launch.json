@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "skynote-demo",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "5599",
+        "--directory",
+        "C:/AI/Codex/gas-notion/demo"
+      ],
+      "port": 5599
+    }
+  ]
+}

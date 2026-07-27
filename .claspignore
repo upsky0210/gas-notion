@@ -1,0 +1,10 @@
+# 不要推上 GAS 的東西。
+# .clasp.json 設了 skipSubdirectories:false,會遞迴掃子目錄,
+# 沒有這個檔的話 demo/mock-backend.js 會被當成 GAS 程式碼一起推上去。
+
+demo/**
+docs/**
+.claude/**
+.git/**
+node_modules/**
+*.md
