@@ -2591,6 +2591,22 @@
     return $('titleInput').value.trim() || '未命名';
   }
 
+  // 對外動作的送出前確認:講清楚「送到哪裡、用哪個帳號、能不能收回」。
+  // 只用在會離開這個應用程式的動作(寄信、Classroom 公告、建立 Drive 檔案、公開連結)。
+  // 可逆的本機開關(每日自動頁、自動備份)刻意不加 —— 確認視窗一多,
+  // 使用者就會養成反射性按下去的習慣,真正該停下來的時候反而擋不住。
+  function confirmSend(what, target, recoverable) {
+    return confirm(
+      what + '\n\n'
+      + '對象:' + target + '\n'
+      + '身分:你目前登入的 Google 帳號\n'
+      + (recoverable
+        ? '可否還原:可以,事後仍能自行刪除'
+        : '⚠ 送出後無法收回')
+      + '\n\n確定要繼續嗎?'
+    );
+  }
+
   function showIntg() {
     hideVersions();
     hideAi();
@@ -2619,10 +2635,13 @@
     mailTo.placeholder = '收件者 email,留空寄給自己';
     const mailNote = intgNote(gMail);
     mailRow.append(mailTo, intgBtn('寄出', async () => {
+      const to = mailTo.value.trim();
+      if (!confirmSend('要把「' + currentTitle() + '」整頁內容寄出嗎?',
+        to || '你自己(登入中的帳號)', false)) return;
       mailNote.textContent = '寄送中…';
       try {
         const md = await pageAsMarkdown();
-        const res = await run('api_emailPage', mailTo.value.trim(), currentTitle(), md);
+        const res = await run('api_emailPage', to, currentTitle(), md);
         mailNote.textContent = '已寄給 ' + res.to;
       } catch (e) { mailNote.textContent = '寄送失敗:' + (e.message || e); }
     }));
@@ -2671,6 +2690,8 @@
             }
           }
           if (!titles.length) { tasksNote.textContent = '這一頁沒有未完成的待辦'; return; }
+          if (!confirmSend('要把這一頁的 ' + titles.length + ' 項未完成待辦送到 Google Tasks 嗎?',
+            'Google Tasks(你的預設清單)', true)) { tasksNote.textContent = ''; return; }
           const res = await run('api_pushTasks', titles);
           tasksNote.textContent = '已送 ' + res.count + ' 項到「' + res.listName + '」';
         } catch (e) { tasksNote.textContent = '送出失敗:' + (e.message || e); }
@@ -2715,6 +2736,8 @@
     const expRow = document.createElement('div');
     expRow.className = 'aiRow';
     const exportTo = async (fn, label) => {
+      if (!confirmSend('要用「' + currentTitle() + '」的內容建立新檔案嗎?',
+        'Google 雲端硬碟 — ' + (fn === 'api_exportSlides' ? '簡報' : '文件'), true)) return;
       expNote.textContent = label + '中…';
       try {
         const md = await pageAsMarkdown();
@@ -2758,6 +2781,9 @@
       crSel,
       intgBtn('公告此頁內容', async () => {
         if (!crSel.value) { crNote.textContent = '請先載入並選擇課程'; return; }
+        const courseName = (crSel.selectedOptions[0] || {}).textContent || '所選課程';
+        if (!confirmSend('要把「' + currentTitle() + '」公告到課程嗎?全班學生都會看到。',
+          'Google Classroom — ' + courseName, false)) return;
         crNote.textContent = '公告中…';
         try {
           const md = await pageAsMarkdown();
@@ -2938,6 +2964,10 @@
           b.className = 'btn';
           b.textContent = label;
           b.onclick = async () => {
+            if (!confirmSend(
+              '要建立公開連結嗎?任何拿到連結的人都能閱讀,不需要登入。'
+                + (scope === 'tree' ? '\n範圍:「' + currentTitle() + '」及其全部子頁面。' : '\n範圍:僅「' + currentTitle() + '」這一頁。'),
+              '網際網路(公開唯讀連結)', true)) return;
             b.textContent = '建立中…';
             try {
               await run('api_sharePage', currentId, scope);
