@@ -855,6 +855,72 @@ function api_todayEvents() {
   };
 }
 
+// 列出使用者所有日曆(讀/寫共用的選單來源)
+function api_listCalendars() {
+  const def = CalendarApp.getDefaultCalendar();
+  const defId = def.getId();
+  const cals = CalendarApp.getAllCalendars().map((c) => ({ id: c.getId(), name: c.getName() }));
+  // 預設日曆排最前,其餘照名稱
+  cals.sort((a, b) => (a.id === defId ? -1 : b.id === defId ? 1 : a.name.localeCompare(b.name)));
+  return { defaultId: defId, calendars: cals };
+}
+
+// 讀取某日曆從今天起 days 天內的行程(days=1 即今天)
+function api_rangeEvents(calendarId, days) {
+  const tz = Session.getScriptTimeZone();
+  const cal = calendarId ? CalendarApp.getCalendarById(calendarId) : CalendarApp.getDefaultCalendar();
+  if (!cal) throw new Error('找不到指定的日曆(可能已取消訂閱)');
+  const n = Math.min(Math.max(Number(days) || 7, 1), 31);
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(start.getTime() + n * 24 * 60 * 60 * 1000);
+  const wk = ['日', '一', '二', '三', '四', '五', '六'];
+  const events = cal.getEvents(start, end).map((e) => {
+    const s = e.getStartTime();
+    return {
+      date: Utilities.formatDate(s, tz, 'MM/dd') + '(' + wk[s.getDay()] + ')',
+      title: e.getTitle(),
+      time: e.isAllDayEvent()
+        ? '整天'
+        : Utilities.formatDate(s, tz, 'HH:mm') + '–' + Utilities.formatDate(e.getEndTime(), tz, 'HH:mm')
+    };
+  });
+  return {
+    calName: cal.getName(),
+    from: Utilities.formatDate(start, tz, 'yyyy/MM/dd'),
+    to: Utilities.formatDate(new Date(end.getTime() - 1), tz, 'yyyy/MM/dd'),
+    events: events
+  };
+}
+
+// 把筆記裡的事件寫回 Google 日曆(筆記 → 日曆)
+function api_createEvent(calendarId, title, dateStr, startTime, endTime, desc) {
+  if (!title || !String(title).trim()) throw new Error('請輸入事件標題');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr || '')) throw new Error('請選擇日期');
+  const cal = calendarId ? CalendarApp.getCalendarById(calendarId) : CalendarApp.getDefaultCalendar();
+  if (!cal) throw new Error('找不到指定的日曆');
+  const parts = dateStr.split('-').map(Number);
+  const y = parts[0], mo = parts[1], d = parts[2];
+  const opts = desc ? { description: String(desc) } : {};
+  let ev;
+  if (startTime && /^\d{1,2}:\d{2}$/.test(startTime)) {
+    const st = startTime.split(':').map(Number);
+    const start = new Date(y, mo - 1, d, st[0], st[1], 0);
+    let end;
+    if (endTime && /^\d{1,2}:\d{2}$/.test(endTime)) {
+      const et = endTime.split(':').map(Number);
+      end = new Date(y, mo - 1, d, et[0], et[1], 0);
+      if (end <= start) end = new Date(start.getTime() + 60 * 60 * 1000);
+    } else {
+      end = new Date(start.getTime() + 60 * 60 * 1000); // 未填結束時間 → 預設 1 小時
+    }
+    ev = cal.createEvent(String(title), start, end, opts);
+  } else {
+    ev = cal.createAllDayEvent(String(title), new Date(y, mo - 1, d), opts); // 未填時間 → 整天事件
+  }
+  return { ok: true, calName: cal.getName(), title: String(title) };
+}
+
 function api_listTasks() {
   const lists = (Tasks.Tasklists.list().items) || [];
   if (!lists.length) return { listName: '', tasks: [] };

@@ -1414,6 +1414,14 @@
     return s;
   }
 
+  // 區塊 HTML → 純文字(送 Google Tasks 等外部純文字服務用):
+  // 去標籤 + 還原 &nbsp;/&amp; 等 HTML 實體,並把連續空白收成一個
+  function htmlToPlain(html) {
+    const d = document.createElement('div');
+    d.innerHTML = String(html || '').replace(/<br\s*\/?>/gi, ' ');
+    return (d.textContent || '').replace(/ /g, ' ').replace(/\s+/g, ' ').trim();
+  }
+
   function toMarkdown(title, data) {
     const lines = ['# ' + title, ''];
     for (const b of (data.blocks || [])) {
@@ -2647,19 +2655,89 @@
     }));
     gMail.insertBefore(mailRow, mailNote);
 
-    const gCal = intgGroup(card, '日曆 — 今日行程');
+    const gCal = intgGroup(card, '日曆 — 讀取行程 / 建立事件');
     const calNote = intgNote(gCal);
-    gCal.insertBefore(intgBtn('插入今日行程到頁尾', async () => {
+    // 日曆選單(讀取與建立事件共用);非預設日曆(如訂閱的學校行事曆)也選得到
+    const calSel = document.createElement('select');
+    calSel.className = 'aiInput';
+    const optLoading = document.createElement('option');
+    optLoading.textContent = '讀取日曆清單中…';
+    calSel.appendChild(optLoading);
+    calSel.disabled = true;
+    run('api_listCalendars').then((res) => {
+      calSel.innerHTML = '';
+      res.calendars.forEach((c) => {
+        const o = document.createElement('option');
+        o.value = c.id;
+        o.textContent = c.name + (c.id === res.defaultId ? '(預設)' : '');
+        calSel.appendChild(o);
+      });
+      calSel.value = res.defaultId;
+      calSel.disabled = false;
+    }).catch((e) => { optLoading.textContent = '日曆清單讀取失敗:' + (e.message || e); });
+    const calSelRow = document.createElement('div');
+    calSelRow.className = 'aiRow';
+    calSelRow.appendChild(calSel);
+    gCal.insertBefore(calSelRow, calNote);
+
+    const insertRange = async (days, label) => {
       calNote.textContent = '讀取中…';
       try {
-        const res = await run('api_todayEvents');
-        const blocks = [{ type: 'header', data: { text: '今日行程 ' + res.date, level: 3 } }];
-        if (!res.events.length) blocks.push({ type: 'paragraph', data: { text: '(今天沒有行程)' } });
-        else blocks.push({ type: 'checklist', data: { items: res.events.map((ev) => ({ text: escapeHtml(ev.time + ' ' + ev.title), checked: false })) } });
+        const res = await run('api_rangeEvents', calSel.value || '', days);
+        const head = label + '(' + res.calName + (days > 1 ? ' ' + res.from + '–' + res.to : ' ' + res.from) + ')';
+        const blocks = [{ type: 'header', data: { text: head, level: 3 } }];
+        if (!res.events.length) blocks.push({ type: 'paragraph', data: { text: '(這段期間沒有行程)' } });
+        else blocks.push({ type: 'checklist', data: { items: res.events.map((ev) =>
+          ({ text: escapeHtml((days > 1 ? ev.date + ' ' : '') + ev.time + ' ' + ev.title), checked: false })) } });
         insertBlocksAtEnd(blocks);
         calNote.textContent = '已插入 ' + res.events.length + ' 筆行程';
       } catch (e) { calNote.textContent = '讀取失敗:' + (e.message || e); }
-    }), calNote);
+    };
+    const calReadRow = document.createElement('div');
+    calReadRow.className = 'aiRow';
+    calReadRow.append(
+      intgBtn('插入今日行程', () => insertRange(1, '今日行程')),
+      intgBtn('插入本週行程', () => insertRange(7, '本週行程'))
+    );
+    gCal.insertBefore(calReadRow, calNote);
+
+    // 建立事件:標題 + 日期 +(可留空的)起訖時間 → 寫回選定的日曆
+    const evTitle = document.createElement('input');
+    evTitle.className = 'aiInput';
+    evTitle.placeholder = '事件標題';
+    const evDate = document.createElement('input');
+    evDate.type = 'date';
+    evDate.className = 'aiInput';
+    evDate.style.maxWidth = '160px';
+    const evStart = document.createElement('input');
+    evStart.type = 'time';
+    evStart.className = 'aiInput';
+    evStart.style.maxWidth = '110px';
+    const evEnd = document.createElement('input');
+    evEnd.type = 'time';
+    evEnd.className = 'aiInput';
+    evEnd.style.maxWidth = '110px';
+    const evRow1 = document.createElement('div');
+    evRow1.className = 'aiRow';
+    evRow1.appendChild(evTitle);
+    const evRow2 = document.createElement('div');
+    evRow2.className = 'aiRow';
+    evRow2.append(evDate, evStart, evEnd, intgBtn('建立日曆事件', async () => {
+      const title = evTitle.value.trim();
+      if (!title) { calNote.textContent = '請先輸入事件標題'; return; }
+      if (!evDate.value) { calNote.textContent = '請先選擇日期'; return; }
+      const when = evDate.value + (evStart.value ? ' ' + evStart.value + (evEnd.value ? '–' + evEnd.value : '') : '(整天)');
+      const calName = calSel.options[calSel.selectedIndex] ? calSel.options[calSel.selectedIndex].textContent : '選定的日曆';
+      if (!confirmSend('要在 Google 日曆建立事件「' + title + '」(' + when + ')嗎?', calName, true)) return;
+      calNote.textContent = '建立中…';
+      try {
+        const res = await run('api_createEvent', calSel.value || '', title, evDate.value, evStart.value || '', evEnd.value || '', '由 SkyNote 建立');
+        calNote.textContent = '已在「' + res.calName + '」建立事件:' + res.title;
+        evTitle.value = '';
+      } catch (e) { calNote.textContent = '建立失敗:' + (e.message || e); }
+    }));
+    gCal.insertBefore(evRow1, calNote);
+    gCal.insertBefore(evRow2, calNote);
 
     const gTasks = intgGroup(card, 'Google Tasks — 待辦');
     const tasksRow = document.createElement('div');
@@ -2686,7 +2764,9 @@
           for (const b of (data.blocks || [])) {
             if (b.type !== 'checklist') continue;
             for (const it of (b.data.items || [])) {
-              if (!it.checked && it.text) titles.push(String(it.text).replace(/<[^>]+>/g, ''));
+              if (it.checked) continue;
+              const plain = htmlToPlain(it.text);
+              if (plain) titles.push(plain);
             }
           }
           if (!titles.length) { tasksNote.textContent = '這一頁沒有未完成的待辦'; return; }
